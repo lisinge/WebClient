@@ -5,26 +5,26 @@ angular.module("proton.controllers.Settings", [
 ])
 
 .controller("SettingsController", function(
+    $log,
+    $rootScope,
+    $scope,
     $state,
     $stateParams,
-    $scope,
-    $rootScope,
-    $log,
     $timeout,
+    $translate,
     $window,
-    authentication,
-    confirmModal,
-    labelModal,
-    url,
     Label,
     Logs,
     Setting,
     User,
-    tools,
-    pmcw,
-    notify,
+    authentication,
+    confirmModal,
+    labelModal,
     networkActivityTracker,
-    $translate
+    notify,
+    pmcw,
+    tools,
+    url
 ) {
     $rootScope.pageName = "settings";
     $scope.tools = tools;
@@ -122,7 +122,7 @@ angular.module("proton.controllers.Settings", [
 
     $scope.exportPublicKey = function () {
         var pbk = authentication.user.PublicKey;
-        var blob = new Blob([pbk], { type: 'data:text/plain;base64;' });
+        var blob = new Blob([pbk], { type: 'data:text/plain;charset=utf-8;' });
         var filename = 'protonmail_public_' + authentication.user.Name + '.txt';
 
         saveAs(blob, filename);
@@ -131,7 +131,7 @@ angular.module("proton.controllers.Settings", [
     // NOT USED
     $scope.exportEncPrivateKey = function () {
         var pbk = authentication.user.EncPrivateKey;
-        var blob = new Blob([pbk], { type: 'data:text/plain;base64;' });
+        var blob = new Blob([pbk], { type: 'data:text/plain;charset=utf-8;' });
         var filename = 'protonmail_private_'+authentication.user.Name+'.txt';
 
         saveAs(blob, filename);
@@ -247,19 +247,21 @@ angular.module("proton.controllers.Settings", [
     $scope.saveMailboxPassword = function(form) {
         var oldMailPwd = $scope.oldMailboxPassword;
         var newMailPwd = $scope.newMailboxPassword;
+
         var newEncPrivateKey = pmcrypto.getNewEncPrivateKey(authentication.user.EncPrivateKey, oldMailPwd, newMailPwd);
-        var currentMailboxPassword = $scope.currentMailboxPassword;
+        var currentLoginPassword = $scope.currentLoginPassword;
 
         if (newEncPrivateKey === -1) {
             notify($translate.instant('WRONG_CURRENT_MAILBOX_PASSWORD'));
         }
-        else if (newEncPrivateKey.length < 50) {
-            notify(newEncPrivateKey);
+        else if ( Error.prototype.isPrototypeOf(newEncPrivateKey) ) {
+            // Error messages from OpenPGP.js
+            notify(newEncPrivateKey.message);
         }
         else {
             networkActivityTracker.track(
                 User.keys({
-                    "Password": currentMailboxPassword,
+                    "Password": currentLoginPassword,
                     "PublicKey": authentication.user.PublicKey,
                     "PrivateKey": newEncPrivateKey
                 }).$promise.then(function(response) {
@@ -270,7 +272,7 @@ angular.module("proton.controllers.Settings", [
                         $scope.oldMailboxPassword = '';
                         $scope.newMailboxPassword = '';
                         $scope.confirmMailboxPassword = '';
-                        $scope.currentMailboxPassword = '';
+                        $scope.currentLoginPassword = '';
                         authentication.user.EncPrivateKey = newEncPrivateKey;
                         authentication.savePassword(newMailPwd);
                         form.$setUntouched();
@@ -355,11 +357,11 @@ angular.module("proton.controllers.Settings", [
                                     notify($translate.instant('LABEL_CREATED'));
                                     $scope.labels.push(result.Label);
                                 } else {
-                                    notify(result.error);
+                                    notify(result.Error);
                                     $log.error(result);
                                 }
                             }, function(result) {
-                                notify(result.error);
+                                notify(result.Error);
                                 $log.error(result);
                             })
                         );

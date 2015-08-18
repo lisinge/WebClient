@@ -1,6 +1,14 @@
 angular.module("proton.modals", [])
 
-.factory('pmModal', ['$animate', '$compile', '$rootScope', '$controller', '$q', '$http', '$templateCache', function($animate, $compile, $rootScope, $controller, $q, $http, $templateCache) {
+.factory('pmModal', function(
+    $animate,
+    $compile,
+    $rootScope,
+    $controller,
+    $q,
+    $http,
+    $templateCache
+) {
     return function modalFactory(config) {
         if (!(!config.template ^ !config.templateUrl)) {
             throw new Error('Expected modal to have exacly one of either template or templateUrl');
@@ -84,7 +92,7 @@ angular.module("proton.modals", [])
             active: active
         };
     };
-}])
+})
 
 // confirm modal
 .factory('confirmModal', function(pmModal) {
@@ -221,20 +229,6 @@ angular.module("proton.modals", [])
                 '#c6cd97',
                 '#e7d292',
                 '#dfb286'
-                // '#f66',
-                // '#ff9',
-                // '#f6f',
-                // '#6ff',
-                // '#66f',
-                // '#6f6',
-                // '#999',
-                // '#fcc',
-                // '#ffc',
-                // '#fcf',
-                // '#cff',
-                // '#ccf',
-                // '#cfc',
-                // '#ccc'
             ];
 
             if(angular.isDefined(params.label)) {
