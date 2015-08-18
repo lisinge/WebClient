@@ -3,14 +3,14 @@
 
 var _ = require("lodash"),
 util = require("util");
-var appVersion = '2.0.5';
+var appVersion = '2.0.8';
 var apiVersion = '1';
+var dateVersion = '14 August 2015';
 var clientID = 'Angular';
 var clientSecret = '00a11965ac0b47782ec7359c5af4dd79';
 var BROWSERS = ["PhantomJS", "Chrome", "Firefox", "Safari"];
 var API_TARGETS = {
-    prod: "https://dev.protonmail.ch/api",
-    dev: "https://test-api.protonmail.ch",
+    prod: "https://protonmail.ch/api",
     build: "/api"
 };
 
@@ -105,6 +105,7 @@ module.exports = function(grunt) {
                         apiUrl: apiUrl(),
                         app_version: appVersion,
                         api_version: apiVersion,
+                        date_version: dateVersion,
                         clientID: clientID,
                         clientSecret: clientSecret
                     }
@@ -117,6 +118,7 @@ module.exports = function(grunt) {
                         apiUrl: apiUrl(),
                         app_version: appVersion,
                         api_version: apiVersion,
+                        date_version: dateVersion,
                         clientID: clientID,
                         clientSecret: clientSecret
                     }

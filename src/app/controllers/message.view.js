@@ -46,12 +46,14 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
         $scope.message = _.extend($scope.message, m);
     });
 
-    $(window).on('resize', function() {
+    function onResize() {
         $scope.setMessageHeadHeight();
-    });
+    }
+
+    $(window).on('resize', onResize);
 
     $scope.$on('$destroy', function() {
-        $(window).off('resize');
+        $(window).off('resize', onResize);
         // cancel timer ago
         $interval.cancel($scope.agoTimer);
     });
@@ -108,19 +110,7 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
     };
 
     $scope.saveNewContacts = function() {
-        var newContacts = _.filter(message.ToList.concat(message.CCList).concat(message.BCCList), function(email) {
-            return contactManager.isItNew(email);
-        });
-
-        _.each(newContacts, function(email) {
-            contactManager.add(email);
-            email.Email = email.Address;
-            email.Name = email.Name || email.Address;
-        });
-
-        if (newContacts.length > 0) {
-            contactManager.send(newContacts);
-        }
+        // contactManager.save(message);
     };
 
     $scope.getFrom = function() {
