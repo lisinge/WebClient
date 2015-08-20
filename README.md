@@ -6,6 +6,7 @@ ProtonMail Web Client
 Official AngularJS web client for ProtonMail users.
 
 ### Development
+### Development
 We are very open to bug reports via Issues as well as Pull Requests. 
 
 ## License
