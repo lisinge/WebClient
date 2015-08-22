@@ -56,9 +56,6 @@ angular.module("proton", [
     "proton.tooltip",
     "proton.emailField",
     "proton.enter",
-    "proton.delayedPassword",
-    "proton.fieldMatch",
-    "proton.fieldFocus",
     "proton.squire",
     "proton.locationTag",
     "proton.dropzone",
@@ -70,7 +67,6 @@ angular.module("proton", [
 
     // Controllers
     "proton.controllers.Account",
-    "proton.controllers.Admin",
     "proton.controllers.Auth",
     "proton.controllers.Bug",
     "proton.controllers.Contacts",
@@ -117,15 +113,22 @@ angular.module("proton", [
 .run(function(
     $document,
     $rootScope,
+    $state,
+    $timeout,
+    authentication,
     networkActivityTracker,
     notify,
-    $state,
-    tools,
-    authentication
+    tools
 ) {
+    var debounce;
+
     $(window).bind('resize load', function() {
-        $rootScope.isMobile = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || $(window).width() < 500) ? true : false;
+        $timeout.cancel(debounce);
+        $timeout(function() {
+            $rootScope.isMobile = tools.findBootstrapEnvironment() === 'xs';
+        }, 100);
     });
+
     $(window).bind('load', function() {
         if (window.location.hash==='#spin') {
             $('body').append('<style>.wrap, .btn{-webkit-animation: lateral 4s ease-in-out infinite;-moz-animation: lateral 4s ease-in-out infinite;}</style>');
@@ -141,6 +144,10 @@ angular.module("proton", [
             firstNameOnly = $rootScope.tempUser.username;
         }
 
+        if (firstNameOnly.length>20) {
+            firstNameOnly = firstNameOnly.substring(0,17)+'...';
+        }
+
         return firstNameOnly;
     };
 
@@ -150,22 +157,19 @@ angular.module("proton", [
 
     var pageTitleTemplate = _.template(
         "<% if (pageName) { %>" +
-        "${ _.string.capitalize(pageName) }" +
-        "<% if (unreadCount) { %>" +
-        " (&thinsp;${unreadCount}&thinsp;)" +
-        "<% } %> " +
-        "&middot; " +
+        "${ pageName }" +
+        " - " +
         "<% } %>" +
         "ProtonMail"
     );
-    $rootScope.$watchGroup(["pageName", "unreadCount"], function(values) {
-        $document.find("title").html(pageTitleTemplate({
-            pageName: values[0],
-            unreadCount: values[1]
-        }));
+
+    $rootScope.$watch('pageName', function(newVal, oldVal) {
+        $document.find("title").html(pageTitleTemplate({ pageName: newVal }));
     });
+
     $rootScope.networkActivity = networkActivityTracker;
     $rootScope.toggleSidebar = false;
+
     // notification service config
     // https://github.com/cgross/angular-notify
     notify.config({
@@ -313,14 +317,17 @@ angular.module("proton", [
         $(".navbar-toggle").click();
 
         $rootScope.toState = toState.name.replace(".", "-");
-        if ($rootScope.scrollToBottom===true) {
+
+        if($rootScope.scrollToBottom === true) {
             setTimeout(function() {
                 $('#content').animate({
                     scrollTop: $("#pageBottom").offset().top
                 }, 1);
             }, 10);
+
             $rootScope.scrollToBottom = false;
         }
+
         $('#loading').remove();
     });
 })
@@ -382,6 +389,7 @@ angular.module("proton", [
 })
 
 .run(function($rootScope) {
+    $rootScope.isFileSaverSupported = !!(('download' in document.createElement('a')) || navigator.msSaveOrOpenBlob);
     // Set build config
     $rootScope.build = {
         "version":"2.0",
@@ -398,7 +406,7 @@ angular.module("proton", [
 
     $window.addEventListener('offline', function() {
         $rootScope.online = false;
-        notify({message: 'Your are not connected to the Internet', classes: 'notification-danger', duration: 0});
+        notify({message: 'You are not connected to the Internet.', classes: 'notification-danger', duration: 0});
     });
 
     $window.addEventListener('online', function() {

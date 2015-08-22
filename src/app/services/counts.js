@@ -122,7 +122,7 @@ angular.module("proton.messages.counts", ["proton.constants"])
             });
 
             var api = _.bindAll({
-                counters: {Labels:{}, Locations:{}, Starred: 0},
+                counters: false,
                 unreadChangedLocally : false,
                 totalChangedLocally : false,
                 get: function() {
@@ -130,13 +130,20 @@ angular.module("proton.messages.counts", ["proton.constants"])
                 },
                 update: function(counters) {
                     this.counters = counters;
+                    $rootScope.$broadcast('updatePageName');
                 },
                 refresh: function() {
+                    var deferred = $q.defer();
+
+                    this.counters = {Labels:{}, Locations:{}, Starred: 0};
                     Message.unreaded({}).$promise.then(function(json) {
                         this.counters.Starred = json.Starred;
                         _.each(json.Labels, function(obj) { this.counters.Labels[obj.LabelID] = obj.Count; }.bind(this));
                         _.each(json.Locations, function(obj) { this.counters.Locations[obj.Location] = obj.Count; }.bind(this));
+                        deferred.resolve();
                     }.bind(this));
+
+                    return deferred.promise;
                 },
                 updateTotals: function(action, messages) {
                     totalCounts[action](messages);
@@ -145,9 +152,11 @@ angular.module("proton.messages.counts", ["proton.constants"])
                 updateUnread: function(action, messages, status) {
                     unreadCounts[action](messages, status);
                     this.unreadChangedLocally = true;
+                    $rootScope.$broadcast('updatePageName');
                 },
                 updateUnreadLabels: function(messages, add, remove) {
                     unreadCounts.label(messages, add, remove);
+                    $rootScope.$broadcast('updatePageName');
                 },
                 updateTotalLabels: function(messages, add, remove) {
                     totalCounts.label(messages, add, remove);

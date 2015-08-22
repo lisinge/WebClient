@@ -7,7 +7,6 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
     $interval,
     $q,
     $rootScope,
-    $sanitize,
     $sce,
     $scope,
     $state,
@@ -15,6 +14,7 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
     $templateCache,
     $timeout,
     $translate,
+    confirmModal,
     CONSTANTS,
     Label,
     Message,
@@ -53,16 +53,13 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
     $(window).on('resize', onResize);
 
     $scope.$on('$destroy', function() {
+        // off resize
         $(window).off('resize', onResize);
         // cancel timer ago
         $interval.cancel($scope.agoTimer);
     });
 
     $scope.initView = function() {
-        if(authentication.user.AutoSaveContacts === 1) {
-            $scope.saveNewContacts();
-        }
-
         if(message.IsRead === 0) {
             message.IsRead = 1;
             Message.read({IDs: [message.ID]});
@@ -109,68 +106,59 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
         messageCache.set([{Action: 3, ID: message.ID, Message: message}]);
     };
 
-    $scope.saveNewContacts = function() {
-        // contactManager.save(message);
-    };
-
-    $scope.getFrom = function() {
-        var result = '';
-
-        if(angular.isDefined(message.SenderName)) {
-            result += '<b>' + message.SenderName + '</b> &lt;' + message.SenderAddress + '&gt;';
-        } else {
-            result += message.SenderAddress;
-        }
-
-        return result;
-    };
-
     $scope.openSafariWarning = function() {
         $('#safariAttachmentModal').modal('show');
     };
 
     $scope.displayContent = function(print) {
-        message.clearTextBody().then(function(result) {
-            var content;
+        message.clearTextBody()
+        .then(
+            function(result) {
 
-            if(print === true) {
-                content = result;
-            } else {
-                content = message.clearImageBody(result);
+                var content;
+
+                if(print === true) {
+                    content = result;
+                } else {
+                    content = message.clearImageBody(result);
+                }
+
+                // safari warning
+                if(!$rootScope.isFileSaverSupported) {
+                    $scope.safariWarning = true;
+                }
+
+                content = DOMPurify.sanitize(content, {
+                    ADD_ATTR: ['target'],
+                    FORBID_TAGS: ['style']
+                });
+
+                if (tools.isHtml(content)) {
+                    $scope.isPlain = false;
+                } else {
+                    $scope.isPlain = true;
+                }
+
+                // for the welcome email, we need to change the path to the welcome image lock
+                content = content.replace("/img/app/welcome_lock.gif", "/assets/img/emails/welcome_lock.gif");
+
+                $scope.content = $sce.trustAsHtml(content);
+
+                $timeout(function() {
+                    tools.transformLinks('message-body');
+                });
+
+                if(print) {
+                    setTimeout(function() {
+                        window.print();
+                        window.history.back();
+                    }, 1000);
+                }
+            },
+            function(err) {
+                $scope.togglePlainHtml();
             }
-
-            // safari warning
-            if(!$scope.isFileSaverSupported) {
-                $scope.safariWarning = true;
-            }
-
-            content = DOMPurify.sanitize(content, {
-                ADD_ATTR: ['target'],
-                FORBID_TAGS: ['style']
-            });
-
-            if (tools.isHtml(content)) {
-                $scope.isPlain = false;
-            } else {
-                $scope.isPlain = true;
-            }
-
-            // for the welcome email, we need to change the path to the welcome image lock
-            content = content.replace("/img/app/welcome_lock.gif", "/assets/img/emails/welcome_lock.gif");
-
-            $scope.content = $sce.trustAsHtml(content);
-
-            $timeout(function() {
-                tools.transformLinks('message-body');
-            });
-
-            if(print) {
-                setTimeout(function() {
-                    window.print();
-                    window.history.back();
-                }, 1000);
-            }
-        });
+        );
     };
 
     $scope.getEmails = function(emails) {
@@ -263,32 +251,44 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
                                 el: $event.target,
                             });
                             attachment.decrypting = false;
-                            if(!$scope.isFileSaverSupported) {
+                            if(!$rootScope.isFileSaverSupported) {
                                 $($event.currentTarget)
                                 .prepend('<span class="fa fa-download"></span>');
                             }
                             $scope.$apply();
+                        },
+                        function(err) {
+                            $log.error(err);
                         }
                     );
                 },
                 function(err) {
-                    console.log(err);
+                    attachment.decrypting = false;
+                    confirmModal.activate({
+                        params: {
+                            title: 'Unable to decrypt attachment.',
+                            message: '<p>We were not able to decrypt this attachment. The technical error code is:</p><p> <pre>'+err+'</pre></p><p>Email us and we can try to help you with this. <kbd>support@protonmail.ch</kbd></p>',
+                            confirm: function() {
+                                confirmModal.deactivate();
+                            },
+                            cancel: function() {
+                                confirmModal.deactivate();
+                            }
+                        }
+                    });
                 }
             );
         }
     };
 
-    $scope.isFileSaverSupported = ('download' in document.createElement('a')) || navigator.msSaveOrOpenBlob;
-
     $scope.downloadAttachment = function(attachment) {
-
         try {
             var blob = new Blob([attachment.data], {type: attachment.MIMEType});
             var link = $(attachment.el);
-            if($scope.isFileSaverSupported) {
+
+            if($rootScope.isFileSaverSupported) {
                 saveAs(blob, attachment.Name);
-            }
-            else {
+            } else {
                 // Bad blob support, make a data URI, don't click it
                 var reader = new FileReader();
 
@@ -380,7 +380,8 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
     // Return Message object to build response or forward
     function buildMessage(action) {
         var base = new Message();
-        var contentSignature = $sanitize('<div>' + tools.replaceLineBreaks($scope.user.Signature) + '</div>');
+        var br = '<br />';
+        var contentSignature = DOMPurify.sanitize('<div>' + tools.replaceLineBreaks($scope.user.Signature) + '</div>');
         var signature = ($(contentSignature).text().length === 0)? '<br /><br />' : '<br /><br />' + contentSignature + '<br /><br />';
         var blockquoteStart = '<blockquote>';
         var originalMessage = '-------- Original Message --------<br />';
@@ -388,7 +389,7 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
         var time = 'Time (UTC): ' + $filter('utcReadableTime')(message.Time) + '<br />';
         var from = 'From: ' + message.SenderAddress + '<br />';
         var to = 'To: ' + tools.contactsToString(message.ToList) + '<br />';
-        var cc = 'CC: ' + tools.contactsToString(message.CCList) + '<br />';
+        var cc = (message.CCList.length > 0)?('CC: ' + tools.contactsToString(message.CCList) + '<br />'):('');
         var blockquoteEnd = '</blockquote>';
         var re_prefix = $translate.instant('RE:');
         var fw_prefix = $translate.instant('FW:');
@@ -396,7 +397,7 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
         var fw_length = fw_prefix.length;
 
         base.ParentID = message.ID;
-        base.Body = signature + blockquoteStart + originalMessage + subject + time + from + to + cc + $scope.content + blockquoteEnd;
+        base.Body = signature + blockquoteStart + originalMessage + subject + time + from + to + cc + br + $scope.content + blockquoteEnd;
 
         if(angular.isDefined(message.AddressID)) {
             base.From = _.findWhere(authentication.user.Addresses, {ID: message.AddressID});

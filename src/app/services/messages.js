@@ -43,6 +43,9 @@ angular.module("proton.messages", ["proton.constants"])
         var messagesToPreload = _.bindAll({
             fetching: false,
             queue: [],
+            empty: function() {
+                this.queue = [];
+            },
             add: function(id) {
                 if (!_.contains(this, id)) {
                     this.queue.push(id);
@@ -59,7 +62,7 @@ angular.module("proton.messages", ["proton.constants"])
                 var self = this;
 
                 setTimeout(function() {
-                    api.get(self.queue.shift()).$promise.then(function() {
+                    api.get(self.queue.shift()).then(function() {
                         if (self.queue.length === 0) {
                             self.fetching = false;
                         } else {
@@ -82,8 +85,13 @@ angular.module("proton.messages", ["proton.constants"])
                 if (cacheLoc === 'inbox') {
                     var lastMessage = _.last(cachedMetadata.inbox);
                     var numMessages = 120 - cachedMetadata.inbox.length;
+                    var parameters = {Location: 0, Page: 0, PageSize: numMessages};
 
-                    Message.query({Location: 0, Page: 0, PageSize: numMessages, End: lastMessage.Time}).$promise.then(function(result) {
+                    if(lastMessage) {
+                        parameters.End = lastMessage.Time;
+                    }
+
+                    Message.query(parameters).$promise.then(function(result) {
                         angular.copy(cachedMetadata.inbox.concat(result.splice(1, numMessages - 1)), cachedMetadata.inbox);
                         addMessageList(cachedMetadata.inbox);
                         deferred.resolve();
@@ -197,18 +205,17 @@ angular.module("proton.messages", ["proton.constants"])
             var msg;
 
             lists.push(messageList);
-            _.find(messageList, function(other, i) {
+
+            _.each(messageList, function(other, i) {
                 // For every message in the newly downloaded message list
                 if ((msg = cachedMessages.get(other.ID))) {
                     // If a completely fetched message exists in the cache
                     // replace the instance in the list with the complete cached instance
-                    // updating variable fields (IsRead, Tag, Location, Labels)
+                    // updating variable fields
                     messageList.splice(i, 1, msg);
                     _.extend(msg, _.pick(other, fields));
-                } else {
-                    if(other.IsRead === 0) {
-                        messagesToPreload.add(other.ID);
-                    }
+                } else if(other.IsRead === 0) {
+                    messagesToPreload.add(other.ID);
                 }
             });
         };
@@ -220,12 +227,6 @@ angular.module("proton.messages", ["proton.constants"])
         var api = _.bindAll({
             started: false,
             watchScope: function(scope, listName) {
-                var messageList = scope[listName];
-
-                if (_.isArray(messageList)) {
-                    addMessageList(messageList);
-                }
-
                 var unsubscribe = scope.$watch(listName, function(newVal, oldVal) {
                     lists = _.without(lists, oldVal);
                     addMessageList(newVal);
@@ -346,6 +347,7 @@ angular.module("proton.messages", ["proton.constants"])
             },
             sync: function() {
                 var promises = [];
+
                 if (cachedMetadata.inbox.length < 100) {
                     promises.push(cachedMetadata.sync('inbox'));
                 }
@@ -361,18 +363,21 @@ angular.module("proton.messages", ["proton.constants"])
             manageExpire: function() {
                 var now = Date.now()/1000;
                 var removed = 0;
+
                 cachedMetadata.inbox = _.filter(cachedMetadata.inbox, function(message) {
                     expTime = message.ExpirationTime;
                     var response = (expTime !== 0 && expTime < now) ? false : true;
                     if (!response) { removed++; }
                     return response;
                 });
+
                 cachedMetadata.sent = _.filter(cachedMetadata.sent, function(message) {
                     expTime = message.ExpirationTime;
                     var response = (expTime !== 0 && expTime < now) ? false : true;
                     if (!response) { removed++; }
                     return response;
                 });
+
                 if (removed > 0) {
                     refreshMessagesCache();
                 }
@@ -404,16 +409,18 @@ angular.module("proton.messages", ["proton.constants"])
                 }
             },
             get: function(id) {
+                var deferred = $q.defer();
                 var msg = cachedMessages.get(id);
 
                 if (!msg) {
-                    msg = Message.get({
-                        id: id
-                    });
+                    msg = Message.get({ id: id });
                     cachedMessages.put(id, msg);
+                    deferred.resolve(msg.$promise);
+                } else {
+                    deferred.resolve(msg);
                 }
 
-                return msg;
+                return deferred.promise;
             },
             put: function(id, msg) {
                 cachedMessages.fusion(id, msg);

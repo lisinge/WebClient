@@ -26,7 +26,7 @@ angular.module("proton.controllers.Settings", [
     tools,
     url
 ) {
-    $rootScope.pageName = "settings";
+    $rootScope.pageName = "Settings";
     $scope.tools = tools;
     $scope.displayName = authentication.user.DisplayName;
     $scope.notificationEmail = authentication.user.NotificationEmail;
@@ -43,6 +43,7 @@ angular.module("proton.controllers.Settings", [
     $scope.ComposerMode = authentication.user.ComposerMode;
     $scope.MessageButtons = authentication.user.MessageButtons;
     $scope.ShowImages = authentication.user.ShowImages;
+    $scope.isSafari = jQuery.browser.name === 'safari';
 
     if (parseInt($scope.doLogging)===0) {
         $scope.disabledText = $translate.instant('DISABLED');
@@ -493,14 +494,16 @@ angular.module("proton.controllers.Settings", [
     };
 
     $scope.saveComposerMode = function(form) {
+        var value = parseInt($scope.ComposerMode);
+
+        authentication.user.ComposerMode = value;
+
         networkActivityTracker.track(
             Setting.setComposerMode({
-                "ComposerMode": parseInt($scope.ComposerMode)
+                "ComposerMode": value
             }).$promise.then(
                 function(response) {
                     notify($translate.instant('THEME_SAVED'));
-                    authentication.user.ComposerMode = $scope.ComposerMode;
-                    $scope.apply();
                 },
                 function(response) {
                     $log.error(response);
