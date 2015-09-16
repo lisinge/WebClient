@@ -109,6 +109,38 @@ angular.module("proton", [
     urlProvider.setBaseUrl(CONFIG.apiUrl);
 })
 
+.run(function(CONSTANTS) {
+    // This function clears junk from session storage. Should not be needed forever
+    try {
+        var whitelist = [
+            CONSTANTS.EVENT_ID,
+            CONSTANTS.MAILBOX_PASSWORD_KEY,
+            CONSTANTS.OAUTH_KEY+":SessionToken",
+            CONSTANTS.OAUTH_KEY + ":Uid",
+            CONSTANTS.OAUTH_KEY + ":AccessToken",
+            CONSTANTS.OAUTH_KEY + ":RefreshToken",
+            "proton:decrypted_token",
+            "proton:encrypted_password"
+        ];
+
+        var data = {};
+        for( var i=0; i<whitelist.length; i++) {
+            var item = window.sessionStorage.getItem(whitelist[i]);
+            if( angular.isString(item) ) {
+                data[whitelist[i]] = item;
+            }
+        }
+
+        window.sessionStorage.clear();
+
+        for (var key in data) {
+            window.sessionStorage.setItem(key, data[key]);
+        }
+    }
+    catch(err) {
+        // Do nothing, session storage support checked for elsewhere
+    }
+})
 
 .run(function(
     $document,
@@ -135,23 +167,7 @@ angular.module("proton", [
         }
     });
 
-    $rootScope.firstNameOnly = function() {
-        var firstNameOnly;
-
-        if(authentication.user) {
-            firstNameOnly = authentication.user.DisplayName;
-        } else {
-            firstNameOnly = $rootScope.tempUser.username;
-        }
-
-        if (firstNameOnly.length>20) {
-            firstNameOnly = firstNameOnly.substring(0,17)+'...';
-        }
-
-        return firstNameOnly;
-    };
-
-    $rootScope.browser = tools.getBrowser;
+    $rootScope.browser = tools.getBrowser();
     $rootScope.terminal = false;
     $rootScope.updateMessage = false;
 
@@ -164,7 +180,7 @@ angular.module("proton", [
     );
 
     $rootScope.$watch('pageName', function(newVal, oldVal) {
-        $document.find("title").html(pageTitleTemplate({ pageName: newVal }));
+        $document.find("title").text(pageTitleTemplate({ pageName: newVal }));
     });
 
     $rootScope.networkActivity = networkActivityTracker;
@@ -186,7 +202,7 @@ angular.module("proton", [
 .factory('authHttpResponseInterceptor', function($q, $injector, $rootScope) {
     return {
         response: function(response) {
-            if (response.data.Code!==undefined) {
+            if (angular.isDefined(response.data) && angular.isDefined(response.data.Code)) {
                 // app update needd
                 if (response.data.Code===5003) {
                     if ($rootScope.updateMessage===false) {
@@ -222,17 +238,20 @@ angular.module("proton", [
             return response || $q.when(response);
         },
         responseError: function(rejection) {
-            // console.log(rejection);
-            // console.log(rejection.config);
-            if (rejection.status === 401) {
-                if ($rootScope.doRefresh===true) {
+            if(rejection.status === 0) {
+                $injector.get('notify')({
+                    message: 'You are not connected to the Internet.',
+                    classes: 'notification-danger',
+                    duration: 0
+                });
+            } else if (rejection.status === 401) {
+                if ($rootScope.doRefresh === true) {
                     $rootScope.doRefresh = false;
                     $injector.get('authentication').getRefreshCookie()
                     .then(
                         function() {
                             var $http = $injector.get('$http');
-                            // console.log(rejection.config);
-                            // rejection.config.headers.common['x-pm-session']
+
                             _.extend(rejection.config.headers, $http.defaults.headers.common);
                             return $http(rejection.config);
                         },
@@ -241,12 +260,12 @@ angular.module("proton", [
                             $injector.get('$state').go('login');
                         }
                     );
-                }
-                else {
+                } else {
                     $injector.get('authentication').logout();
                     $injector.get('$state').go('login');
                 }
             }
+
             return $q.reject(rejection);
         }
     };
@@ -399,31 +418,73 @@ angular.module("proton", [
 })
 
 /**
- * Offline manager
+ * Detect if the user use safari private mode
  */
-.run(function($rootScope, $window, notify) {
-    $rootScope.online = navigator.onLine;
-
-    $window.addEventListener('offline', function() {
-        $rootScope.online = false;
-        notify({message: 'You are not connected to the Internet.', classes: 'notification-danger', duration: 0});
-    });
-
-    $window.addEventListener('online', function() {
-        $rootScope.online = true;
-        notify.closeAll();
-    });
+.run(function(notify, tools) {
+    if(tools.hasSessionStorage() === false) {
+        notify({
+            message: 'You are in Private Mode or have Session Storage disabled.\nPlease deactivate Private Mode and then reload the page.',
+            classes: 'notification-danger',
+            duration: 0
+        });
+    }
 })
 
 //
 // Handle some application exceptions
 //
 
-.factory('$exceptionHandler', function($injector) {
+.factory('$exceptionHandler', function($log, $injector, CONFIG) { // function($injector, $log) {
+    var n_reports = 0;
     return function(exception, cause) {
-        var errorReporter = $injector.get("errorReporter");
-        if (exception.message.indexOf("$sanitize:badparse") >= 0) {
-            errorReporter.notify("There was an error while trying to display this message.", exception);
+        n_reports++;
+        $log.error( exception );
+
+        if ( n_reports < 6 ) {
+            var debug;
+            if ( exception instanceof Error ) {
+                debug = { 'message': exception.message, 'stack': exception.stack };
+            }
+            else if ( angular.isString( exception ) ) {
+                debug = exception;
+            }
+            else {
+                try {
+                    var json = angular.toJson( exception );
+                    if ( $.isEmptyObject( json ) ) {
+                        debug = exception.toString();
+                    }
+                    else {
+                        debug = exception;
+                    }
+                }
+                catch(err) {
+                    debug = err.message;
+                }
+            }
+
+            try {
+                var url = $injector.get("url");
+                var $http = $injector.get("$http");
+                var tools = $injector.get("tools");
+                var $state = $injector.get("$state");
+                var crashData = {
+                    OS:             tools.getOs,
+                    OSVersion:      '',
+                    Browser:         tools.getBrowser,
+                    BrowserVersion:  tools.getBrowserVersion,
+                    Client:         'Angular',
+                    ClientVersion:  CONFIG.app_version,
+                    Debug: { 'state': $state.$current.name, 'error': debug },
+                };
+                crashPromise = $http.post( url.get() + '/bugs/crash', crashData )
+                    .catch(function(err) {
+                        // Do nothing
+                    });
+            }
+            catch(err) {
+                // Do nothing
+            }
         }
     };
 });

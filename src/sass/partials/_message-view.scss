@@ -14,8 +14,6 @@
 }
 
 #attachmentWrap {
-    overflow: auto;
-    max-height: (3*$row-height);
     background-color: #f2f2f2;
 }
 #attachmentArea {
@@ -23,6 +21,7 @@
     margin: 0;
     max-width: none; // conflict with panel
     border-top: 1px solid #ccc;
+    overflow: auto;
     .attachmentTitle {
         line-height: $row-height;
         height: $row-height;
@@ -35,7 +34,6 @@
         }
     }
     a {
-        display: block;
         text-align: left;
     }
     .fa, strong {
@@ -67,7 +65,6 @@
             border-radius: $border-radius-base;
             border: 1px solid transparent;
             transition: all .5s ease;
-            background: rgba(0, 0, 0, .1);
             padding: 0 5px;
             &:hover {
               background: $primary-color;
@@ -173,7 +170,10 @@ ul.attachments {
                 color: rgba(0,0,0,.25)
             }
             &.fa-lock.text-purple {
-                color: $primary-color;
+                color: #669;
+            }
+            &.fa-lock.pgp {
+                color: #090;
             }
         }
         .label {

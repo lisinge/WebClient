@@ -7,7 +7,7 @@
 .composer.minimized {
     top: auto !important;
     height: auto !important;
-} 
+}
 .composer.maximized {
     left: ($sidebar-width+1); //rem
     border-radius: 0;
@@ -75,6 +75,12 @@
 
 }
 
+.typeahead-container {
+    input[type=text]::-ms-clear {
+        display: none;
+    }
+}
+
 .composeEditor {
     -webkit-flex-grow: 1;
     -ms-flex-positive: 1;
@@ -89,8 +95,6 @@
     flex-direction: column;
 }
 .angular-squire {
-    height: 100%;
-
     -webkit-flex-grow: 1;
     -ms-flex-positive: 1;
     flex-grow: 1;
