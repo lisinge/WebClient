@@ -2,6 +2,7 @@ angular.module("proton.messages", ["proton.constants"])
     .service('messageCache', function(
         $q,
         $rootScope,
+        authentication,
         Message,
         CONSTANTS,
         networkActivityTracker
@@ -22,8 +23,8 @@ angular.module("proton.messages", ["proton.constants"])
             "ID",
             "Subject",
             "IsRead",
-            "SenderAddress",
-            "SenderName",
+            "Sender.Address",
+            "Sender.Name",
             "ToList",
             "Time",
             "Size",
@@ -38,6 +39,18 @@ angular.module("proton.messages", ["proton.constants"])
             "AddressID",
             "LabelIDs"
         ];
+
+        var filterLabels = function(input) {
+            var output = [];
+
+            if(angular.isArray(input)) {
+                output = _.filter(input, function(labelID) {
+                    return !(labelID === parseInt(labelID).toString() && parseInt(labelID) <= 25);
+                });
+            }
+
+            return output;
+        };
 
         var messagesToPreload = _.bindAll({
             fetching: false,
@@ -264,12 +277,26 @@ angular.module("proton.messages", ["proton.constants"])
                     var inInbox = (message.Message && message.Message.Location === CONSTANTS.MAILBOX_IDENTIFIERS.inbox);
                     var inSent = (message.Message && message.Message.Location === CONSTANTS.MAILBOX_IDENTIFIERS.sent);
                     var hasLocation = (!inInbox && !inSent && message.Message && message.Message.Location) ? true : false;
-                    var labelsChanged = (message.Message && message.Message.LabelIDsAdded) ? 'added' : (message.Message && message.Message.LabelIDsRemoved) ? 'removed': false;
                     // False if message not in cache, otherwise value is which cache it is in
                     var cacheLoc = (inInboxCache) ? 'inbox' : (inSentCache) ? 'sent' : false;
                     // False if message is not in inbox or sent, otherwise value is which one it is in
                     var loc = (inInbox) ? 'inbox' : (inSent) ? 'sent' : (!hasLocation && cacheLoc) ? cacheLoc : false;
                     var messagePromise;
+
+                    if(angular.isDefined(message.Message) ) {
+                        if( angular.isDefined(message.Message.LabelIDsAdded) ) {
+                            message.Message.LabelIDsAdded = filterLabels(message.Message.LabelIDsAdded);
+                        }
+                        if( angular.isDefined(message.Message.LabelIDsRemoved) ) {
+                            message.Message.LabelIDsRemoved = filterLabels(message.Message.LabelIDsRemoved);
+                        }
+                        if( angular.isDefined(message.Message.LabelIDs) ) {
+                            message.Message.LabelIDs = filterLabels(message.Message.LabelIDs);
+                        }
+                    }
+
+                    var labelsChanged = (message.Message && angular.isArray(message.Message.LabelIDsAdded) && message.Message.LabelIDsAdded.length > 0) ? 'added' : (message.Message && angular.isArray(message.Message.LabelIDsRemoved) && message.Message.LabelIDsRemoved.length > 0) ? 'removed': false;
+
                     // DELETE - message in cache
                     if (message.Action === DELETE && cacheLoc) {
                         cachedMetadata.delete(cacheLoc, message);

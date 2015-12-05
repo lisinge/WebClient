@@ -30,11 +30,19 @@ angular.module("proton.filters.strings",[])
     };
 })
 
+.filter('localReadableTime', function() {
+    return function(time) {
+        var m = moment.unix(time);
+
+        return m.format('LL h:mm a');
+    };
+})
+
 .filter('longReadableTime', function() {
     return function(time) {
         var m = moment.unix(time);
 
-        return m.format('LLL') + " <em>(" + m.fromNow() + ")</em>";
+        return m.format('LLL') + " (" + m.fromNow() + ")";
     };
 })
 // unused

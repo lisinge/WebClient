@@ -33,6 +33,7 @@ angular.module("proton.controllers.Messages.List", ["proton.constants"])
         $scope.selectedFilter = $stateParams.filter;
         $scope.selectedOrder = $stateParams.sort || "-date";
         $scope.page = parseInt($stateParams.page || 1);
+        $scope.allSelectedCheckbox = false;
         $scope.draggableOptions = {
             appendTo: "html",
             delay: 100,
@@ -156,8 +157,9 @@ angular.module("proton.controllers.Messages.List", ["proton.constants"])
         var ddp = [];
         var ddp2 = [];
         var makeRangeCounter = 0;
+        var count = $scope.messageCount();
 
-        for (var i = 0; i <= parseInt($scope.messageCount() - 1); i++) {
+        for (var i = 0; i <= parseInt(count - 1); i++) {
             ddp[i] = i;
         }
 
@@ -284,7 +286,7 @@ angular.module("proton.controllers.Messages.List", ["proton.constants"])
         var result = false;
 
         for( var i = 0, len = $scope.user.Addresses.length; i < len; i++ ) {
-            if( $scope.user.Addresses[i].Email === message.SenderAddress ) {
+            if( $scope.user.Addresses[i].Email === message.Sender.Address ) {
                 result = true;
             }
         }
@@ -300,25 +302,6 @@ angular.module("proton.controllers.Messages.List", ["proton.constants"])
         return {
             backgroundColor: $scope.getLabel(id).Color
         };
-    };
-
-    $scope.onSelectMessage = function(event, message) {
-        if(!lastChecked) {
-            lastChecked = message;
-        } else {
-            if (event.shiftKey) {
-                var start = _.indexOf($scope.messages, message);
-                var end = _.indexOf($scope.messages, lastChecked);
-
-                _.each($scope.messages.slice(Math.min(start, end), Math.max(start, end) + 1), function(message) {
-                    message.Selected = true;
-                });
-            }
-
-            lastChecked = message;
-        }
-
-        $scope.allSelected();
     };
 
     $scope.onStartDragging = function(event, ui, message) {
@@ -446,6 +429,25 @@ angular.module("proton.controllers.Messages.List", ["proton.constants"])
         messageCache.set([{Action: 3, ID: message.ID, Message: message}], true);
     };
 
+    $scope.onSelectMessage = function(event, message) {
+        if(!lastChecked) {
+            lastChecked = message;
+        } else {
+            if (event, event.shiftKey) {
+                var start = _.indexOf($scope.messages, message);
+                var end = _.indexOf($scope.messages, lastChecked);
+
+                _.each($scope.messages.slice(Math.min(start, end), Math.max(start, end) + 1), function(message) {
+                    message.Selected = true;
+                });
+            }
+
+            lastChecked = message;
+        }
+
+        $scope.allSelected();
+    };
+
     $scope.allSelected = function() {
         var status = true;
 
@@ -460,22 +462,32 @@ angular.module("proton.controllers.Messages.List", ["proton.constants"])
         }
 
         $scope.allSelectedCheckbox = status;
-
-        return status;
     };
 
-    $scope.selectAllMessages = function(val) {
-        var status = !!!$scope.allSelected();
+    $scope.toggleAllSelected = function() {
+        var status = $scope.allSelectedCheckbox;
 
+        if(status === true) {
+            $scope.unselectAllMessages();
+        } else {
+            $scope.selectAllMessages();
+        }
+    };
+
+    $scope.selectAllMessages = function() {
         _.forEach($scope.messages, function(message) {
-            message.Selected = status;
+            message.Selected = true;
         });
+
+        $scope.allSelectedCheckbox = true;
     };
 
     $scope.unselectAllMessages = function() {
         _.forEach($scope.messages, function(message) {
             message.Selected = false;
         });
+
+        $scope.allSelectedCheckbox = false;
     };
 
     $scope.selectedMessages = function() {

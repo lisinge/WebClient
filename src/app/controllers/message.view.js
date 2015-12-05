@@ -58,6 +58,25 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
         $interval.cancel($scope.agoTimer);
     });
 
+    $scope.attHeight = function() {
+        var rowHeight = 32;
+        var attachmentAreaHeight = (rowHeight*2);
+        var attachmentSize = message.Attachments.length;
+        if (attachmentSize) {
+            if (attachmentSize<3) {
+                attachmentAreaHeight = (rowHeight*2);
+            }
+            else if (attachmentSize<5) {
+                attachmentAreaHeight = (rowHeight*3);
+            }
+            else {
+                attachmentAreaHeight = (rowHeight*4);
+            }
+        }
+        $log.debug(attachmentAreaHeight);
+        return attachmentAreaHeight;
+    };
+
     $scope.initView = function() {
         if(message.IsRead === 0) {
             message.IsRead = 1;
@@ -95,7 +114,9 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
     };
 
     $scope.displayContent = function(print) {
-        if (message.SenderAddress === "notify@protonmail.ch" && message.IsEncrypted === 0) {
+        var whitelist = ['notify@protonmail.com'];
+
+        if (whitelist.indexOf(message.Sender.Address) !== -1 && message.IsEncrypted === 0) {
             message.imagesHidden = false;
         } else if(authentication.user.ShowImages === 1) {
             message.imagesHidden = false;
@@ -103,48 +124,44 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
 
         message.clearTextBody().then(
             function(result) {
-                var content;
-
-                if(print === true) {
-                    content = result;
-                } else {
-                    content = message.clearImageBody(result);
-                }
-
-                // safari warning
-                if(!$rootScope.isFileSaverSupported) {
-                    $scope.safariWarning = true;
-                }
-
-                content = DOMPurify.sanitize(content, {
-                    ADD_ATTR: ['target'],
-                    FORBID_TAGS: ['style']
-                });
-
-                if (tools.isHtml(content)) {
-                    $scope.isPlain = false;
-                } else {
-                    $scope.isPlain = true;
-                }
-
-                // for the welcome email, we need to change the path to the welcome image lock
-                content = content.replace("/img/app/welcome_lock.gif", "/assets/img/emails/welcome_lock.gif");
-
 
                 var showMessage = function(content) {
-                    $scope.content = $sce.trustAsHtml(content);
 
+                    if(print !== true) {
+                        content = message.clearImageBody(content);
+                    }
+
+                    // safari warning
+                    if(!$rootScope.isFileSaverSupported) {
+                        $scope.safariWarning = true;
+                    }
+
+                    content = DOMPurify.sanitize(content, {
+                        ADD_ATTR: ['target'],
+                        FORBID_TAGS: ['style']
+                    });
+
+                    if (tools.isHtml(content)) {
+                        $scope.isPlain = false;
+                    } else {
+                        $scope.isPlain = true;
+                    }
+
+                    // for the welcome email, we need to change the path to the welcome image lock
+                    content = content.replace("/img/app/welcome_lock.gif", "/assets/img/emails/welcome_lock.gif");
+
+                    $scope.content = $sce.trustAsHtml(content);
                     $timeout(function() {
                         tools.transformLinks('message-body');
                         $scope.setMessageHeadHeight();
                         $scope.setAttachmentHeight();
-                    });
+                    },0,false);
 
                     if(print) {
                         setTimeout(function() {
                             window.print();
                         }, 1000);
-                    }                    
+                    }
                 };
 
                 // PGP/MIME
@@ -156,6 +173,7 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
 
                     mailparser.on('end', function(mail) {
 
+                        var content;
                         if (mail.html) {
                             content = mail.html;
                         }
@@ -170,15 +188,14 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
                             content = "<div class='alert alert-danger'><span class='pull-left fa fa-exclamation-triangle'></span><strong>PGP/MIME Attachments Not Supported</strong><br>This message contains attachments which currently are not supported by ProtonMail.</div><br>"+content;
                         }
 
-                        showMessage(content);
-
+                        $scope.$evalAsync(function() { showMessage(content); });
                     });
 
-                    mailparser.write(content);
+                    mailparser.write(result);
                     mailparser.end();
                 }
                 else {
-                    showMessage(content);
+                    $scope.$evalAsync(function() { showMessage(result); });
                 }
 
             },
@@ -318,7 +335,7 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
                         confirmModal.activate({
                             params: {
                                 title: 'Unable to decrypt attachment.',
-                                message: '<p>We were not able to decrypt this attachment. The technical error code is:</p><p> <pre>'+err+'</pre></p><p>Email us and we can try to help you with this. <kbd>support@protonmail.ch</kbd></p>',
+                                message: '<p>We were not able to decrypt this attachment. The technical error code is:</p><p> <pre>'+err+'</pre></p><p>Email us and we can try to help you with this. <kbd>support@protonmail.com</kbd></p>',
                                 confirm: function() {
                                     confirmModal.deactivate();
                                 },
@@ -438,8 +455,8 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
         var blockquoteStart = '<blockquote class="protonmail_quote">';
         var originalMessage = '-------- Original Message --------<br />';
         var subject = 'Subject: ' + message.Subject + '<br />';
-        var time = 'Time (UTC): ' + $filter('utcReadableTime')(message.Time) + '<br />';
-        var from = 'From: ' + message.SenderAddress + '<br />';
+        var time = 'Local Time: ' + $filter('localReadableTime')(message.Time) + '<br />UTC Time: ' + $filter('utcReadableTime')(message.Time) + '<br />';
+        var from = 'From: ' + message.Sender.Address + '<br />';
         var to = 'To: ' + tools.contactsToString(message.ToList) + '<br />';
         var cc = (message.CCList.length > 0)?('CC: ' + tools.contactsToString(message.CCList) + '<br />'):('');
         var blockquoteEnd = '</blockquote>';
@@ -457,21 +474,23 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
 
         if (action === 'reply') {
             base.Action = 0;
+            base.Subject = (message.Subject.toLowerCase().substring(0, re_length) === re_prefix.toLowerCase()) ? message.Subject : re_prefix + ' ' + message.Subject;
+
             if($state.is('secured.sent.message')) {
                 base.ToList = message.ToList;
             } else {
-                base.ToList = [{Name: message.SenderName, Address: message.SenderAddress}];
+                base.ToList = [message.ReplyTo];
             }
-            base.Subject = (message.Subject.toLowerCase().substring(0, re_length) === re_prefix.toLowerCase()) ? message.Subject : re_prefix + ' ' + message.Subject;
         } else if (action === 'replyall') {
             base.Action = 1;
+            base.Subject = (message.Subject.toLowerCase().substring(0, re_length) === re_prefix.toLowerCase()) ? message.Subject : re_prefix + ' ' + message.Subject;
 
-            if(_.where(authentication.user.Addresses, {Email: message.SenderAddress}).length > 0) {
+            if(_.where(authentication.user.Addresses, {Email: message.Sender.Address}).length > 0) {
                 base.ToList = message.ToList;
                 base.CCList = message.CCList;
                 base.BCCList = message.BCCList;
             } else {
-                base.ToList = [{Name: message.SenderName, Address: message.SenderAddress}];
+                base.ToList = [message.ReplyTo];
                 base.CCList = _.union(message.ToList, message.CCList);
                 // Remove user address in CCList and ToList
                 _.each(authentication.user.Addresses, function(address) {
@@ -479,10 +498,7 @@ angular.module("proton.controllers.Messages.View", ["proton.constants"])
                     base.CCList = _.filter(base.CCList, function(contact) { return contact.Address !== address.Email; });
                 });
             }
-
-            base.Subject = (message.Subject.toLowerCase().substring(0, re_length) === re_prefix.toLowerCase()) ? message.Subject : re_prefix + ' ' + message.Subject;
-        }
-        else if (action === 'forward') {
+        } else if (action === 'forward') {
             base.Action = 2;
             base.ToList = [];
             base.Subject = (message.Subject.toLowerCase().substring(0, fw_length) === fw_prefix.toLowerCase()) ? message.Subject : fw_prefix + ' ' + message.Subject;

@@ -300,7 +300,7 @@ angular.module("proton.routes", [
                         ClientSecret: CONFIG.clientSecret,
                         GrantType: "password",
                         State: authentication.randomString(24),
-                        RedirectURI: "https://protonmail.ch",
+                        RedirectURI: "https://protonmail.com",
                         ResponseType: "token",
                         Scope: "reset"
                     })
@@ -336,7 +336,7 @@ angular.module("proton.routes", [
     // SUPPORT ROUTES
     // -------------------------------------------
     .state("support", {
-        url: "/support",
+        url: "/help",
         views: {
             "main@": {
                 controller: "SupportController",
@@ -363,7 +363,7 @@ angular.module("proton.routes", [
     })
 
     .state("support.reset-password", {
-        url: "/reset-password",
+        url: "/reset-login-password",
         views: {
             "panel@support": {
                 templateUrl: "templates/views/reset-password.tpl.html"

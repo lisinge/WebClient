@@ -133,7 +133,7 @@ angular.module("proton.tools", ["proton.constants"])
     };
 
     tools.is_valid_dkim = function(header) {
-        if ((header.indexOf('dkim=none') === -1) && (header.indexOf('dkim=pass') !== -1)) {
+        if (header && (header.indexOf('dkim=none') === -1) && (header.indexOf('dkim=pass') !== -1)) {
             return true;
         } else {
             return false;
@@ -308,22 +308,22 @@ angular.module("proton.tools", ["proton.constants"])
         var kb = 1024;
         var mb = kb*kb;
         var gb = mb*kb;
-        var cur = current / kb; // convert to KB
+        var cur = (current/kb).toFixed(0); // convert to KB
 
         if (max < gb) {
-            // render bar in terms of MB
+            // render bar in terms of MB such as "785.4 MB"
             cur = (cur/kb).toFixed(1);
 
-            if (cur > 0 && cur < 0.01) {
+            if (0 < Number(cur) && Number(cur) < 0.01) {
                 cur = 0.01;
             }
 
             return Number(cur) + '/' + Number(Math.round(max/kb/kb)) + ' MB';
         } else {
-            // render bar in terms of GB
+            // render bar in terms of GB such as "15.23 GB"
             cur = (cur/kb/kb).toFixed(2);
 
-            if (cur > 0 && cur < 0.01) {
+            if (0 < Number(cur) && Number(cur) < 0.01) {
                 cur = 0.01;
             }
 

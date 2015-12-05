@@ -11,6 +11,7 @@ angular.module("proton.controllers.Auth", [
     $log,
     $timeout,
     $http,
+    $location,
     CONSTANTS,
     CONFIG,
     authentication,
@@ -45,6 +46,9 @@ angular.module("proton.controllers.Auth", [
             // Don't focus the input field
         } else {
             $('input.focus').focus();
+        }
+        if ($location.hash()==='help') {
+            $scope.getLoginHelp();
         }
     };
 
@@ -152,9 +156,9 @@ angular.module("proton.controllers.Auth", [
 
                         $state.go("login.unlock");
                         return;
-                    } else if (angular.isDefined(result.Error)) {
+                    } else if (angular.isDefined(result.data) && angular.isDefined(result.data.Error)) {
                         // TODO: This might be buggy
-	                	var error  = (result.Code === 401) ? 'Wrong Username or Password' : (result.ErrorDescription) ? result.ErrorDescription : result.Error;
+	                	var error  = (angular.isDefined(result.data.ErrorDescription) && result.data.ErrorDescription.length) ? result.data.ErrorDescription : result.data.Error;
 
                         notify({
 	                        classes: 'notification-danger',

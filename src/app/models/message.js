@@ -20,6 +20,18 @@ angular.module("proton.models.message", ["proton.constants"])
     notify,
     tools
 ) {
+    var filterLabels = function(input) {
+        var output = [];
+
+        if(angular.isArray(input)) {
+            output = _.filter(input, function(labelID) {
+                return !(labelID === parseInt(labelID).toString() && parseInt(labelID) <= 25);
+            });
+        }
+
+        return output;
+    };
+
     var invertedMailboxIdentifiers = _.invert(CONSTANTS.MAILBOX_IDENTIFIERS);
     var Message = $resource(
         url.get() + '/messages/:id',
@@ -54,6 +66,9 @@ angular.module("proton.models.message", ["proton.constants"])
                 url: url.get() + '/messages/:id',
                 transformResponse: function(data) {
                     var json = angular.fromJson(data);
+
+                    json.Message.LabelIDs = filterLabels(json.Message.LabelIDs);
+
                     return json.Message;
                 }
             },
@@ -69,6 +84,10 @@ angular.module("proton.models.message", ["proton.constants"])
                     var json = angular.fromJson(data);
 
                     $rootScope.Total = json.Total;
+
+                    for( i=0; i<json.Messages.length; i++ ) {
+                        json.Messages[i].LabelIDs = filterLabels(json.Messages[i].LabelIDs);
+                    }
 
                     return json.Messages;
                 }
