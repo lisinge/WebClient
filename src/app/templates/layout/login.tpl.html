@@ -1,17 +1,10 @@
-<ng-include src="'templates/partials/header.tpl.html'" class="hidden-xs" id="header"></ng-include>
+<ng-include src="'templates/partials/header-no-auth.tpl.html'"></ng-include>
 
-<div class="container-fluid" id="content" ng-class="{ 'robot': domoArigato }">
-
-	<div id="robotLoader" ng-show="domoArigato">
-		<p class="text-center">Decrypting Mailbox</p>
-		<ng-include src="'templates/partials/loader.tpl.html'"></ng-include>
-	</div>
-
-    <div class="row" ng-hide="domoArigato">
-        <div ui-view="panel"></div>
-    </div>
-    <p class="text-center white"><a href="https://protonmail.com/blog/category/release-notes/" class="underline" target="_blank">v{{ app_version }} - {{ date_version }}</a></p>
-
+<div class="row">
+    <div ui-view="panel"></div>
 </div>
 
-<ng-include src="'templates/partials/form.bug.tpl.html'"></ng-include>
+<div id="pm_footer">
+    <p>
+    &copy; 2016 ProtonMail.com - Made globally, hosted in Switzerland. v<a href="https://protonmail.com/blog/category/release-notes/" target="_blank">{{ app_version }}</a> beta</p>
+</div>

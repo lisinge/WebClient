@@ -1,0 +1,164 @@
+// All versions of IE
+.ua-ie {
+    #pm_header {
+        .pm_dropdown {
+            top: 200%;
+        }
+    }
+    body.scroll {
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    #pm_composer .composer {
+        border: 1px solid $border;
+    }
+}
+
+.ua-edge {}
+
+// All iOS devices
+.ua-ios {
+    #pm_captcha {
+        -webkit-overflow-scrolling: touch;
+        overflow: auto !important;
+    }
+}
+
+// Firefox Linux
+.ua-firefox.ua-desktop-linux {
+    .pm_buttons a,
+    .pm_button {
+        overflow: hidden;
+    }
+}
+
+// All Windows
+.ua-windows_nt {
+
+}
+
+.ua-firefox {
+    .pm_button.primary.compose {
+        line-height: 35px;
+    }
+    .pm_button {
+        line-height: 30px;
+    }
+    #pm_composer .composer .pm_button {
+        line-height: ($composerRowHeight - 6);
+    }
+    form.searchForm fieldset button,
+    form.searchForm fieldset button .fa {
+        line-height: 32px;
+    }
+    .pm_labels label,
+    .pm_labels label.closed:hover {
+        line-height: 8px;
+    }
+    .pm_tag {
+        line-height: 14px;
+    }
+    .pm_labels.inline label {
+        height: 18px;
+        line-height: 8px;
+    }
+    #conversation-view .message > div.summary {
+        line-height: 34px;
+    }
+    .pm_table th .pm_button, .pm_table td .pm_button {
+        line-height: 30px;
+    }
+}
+
+// All Windows, Firefox
+.ua-windows_nt.ua-firefox {
+    &.ua-firefox {
+        #pm_composer .composer .pm_button {
+            line-height: 26px;
+        }
+        .pm_buttons a,
+        .pm_button {
+            line-height: 30px;
+        }
+        #pm_sidebar section.sidebar .pm_button.round {
+            line-height: 30px;
+        }
+        .pm_table th,
+        .pm_table td {
+            .pm_button.round {
+                line-height: 34px;
+                position: relative;
+                top: 8px;
+            }
+        }
+    }
+}
+
+// Windows 7, IE 11
+.ua-windows_nt-6.ua-ie-11-0 {
+    #pm_settings #plans .plans .plan .features li .pm_select {
+        position: relative;
+        top: 10px;
+    }
+}
+
+.ua-firefox {
+    .pm_button,
+    .pm_buttons a {
+        overflow: hidden;
+    }
+    body section.sidebar a.compose {
+        line-height: 40px;
+    }
+    header#pm_header .pull-right {
+        height: 61px;
+        overflow: hidden;
+        a {
+            float: left;
+        }
+        .pm_button.primary {
+            margin-top: 14px;
+        }
+    }
+}
+
+input:invalid,
+input:-moz-ui-invalid {
+    border:0;
+    outline:none;
+    box-shadow:none;
+    -moz-box-shadow:none;
+    -webkit-box-shadow:none;
+}
+
+
+.ua-safari {
+    .conversation .pm_labels label {
+        &:first-child,
+        &:hover {
+            position: relative;
+            top: -6px;
+        }
+        &.single {
+            top: -3px !important;
+        }
+    }
+    #conversation-view .summary .pm_labels label{
+        &:first-child {
+            position: relative;
+            top: -6px;
+        }
+    }
+    #conversation-view .message > div.summary .labels .pm_labels label:hover {
+        top: -6px;
+    }
+    #conversation-view .message > div.summary .labels .pm_labels label.more {
+        top: -7px;
+    }
+    #conversation-list-columns,
+    #conversation-list-rows {
+        .pm_labels label.more {
+            top: -7px;
+        }
+    }
+}

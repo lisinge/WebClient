@@ -1,0 +1,108 @@
+.container-email {
+    position: relative;
+    color: $gray;
+    font-size: 13px;
+    * {
+        box-sizing: border-box;
+    }
+    .input-email {
+        display: block;
+        cursor: text;
+        min-height: 30px;
+        line-height: 30px;
+        padding: 0 6px;
+        vertical-align: middle;
+        position: relative;
+        form input {
+            max-width: 95%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    .label-email {
+        border: 1px solid $gray-light;
+        background-color: $gray-light;
+        margin-top: 5px;
+        text-shadow: none;
+        border-radius: 2px;
+        padding-left: 5px;
+        margin-right: 5px;
+        display: inline-block;
+        line-height: 20px;
+        word-break: break-all;
+    }
+
+    .label-email:hover {
+        border-color: $gray;
+    }
+
+    .label-email a {
+        font-weight: normal;
+        margin-right: 5px;
+        cursor: pointer;
+    }
+
+    .input-email input[type="text"] {
+        border: none;
+        resize: none;
+        padding: 0 5px !important;
+        outline: none;
+        margin-bottom: 0;
+        box-shadow: none;
+        height: 30px;
+        line-height: 30px;
+        width: 330px;
+        overflow: hidden;
+        white-space: nowrap;
+        transition: none;
+    }
+
+    .input-email form {
+        margin-bottom: 0;
+        display: inline;
+    }
+
+    .autocomplete-email {
+        z-index: 999;
+        list-style-type: none;
+        border: 1px solid $border;
+        position: absolute;
+        background-color: white;
+        max-height: 150px;
+        overflow-y: auto;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .autocomplete-email ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .autocomplete-email li {
+        padding: 0;
+        margin: 0;
+    }
+
+    .autocomplete-email a {
+        color: $gray;
+        cursor: pointer;
+        line-height: 30px;
+        padding-left: 10px;
+        padding-right: 10px;
+        display: block;
+        text-decoration: none;
+    }
+
+    .autocomplete-email a.selected,
+    .autocomplete-email a:hover.selected {
+        background-color: $gray-light;
+    }
+
+    .autocomplete-email a:hover {
+        background-color: $light;
+    }
+}

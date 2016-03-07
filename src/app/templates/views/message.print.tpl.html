@@ -1,20 +1,81 @@
-<div class="container">
-    <h2>{{message.Subject}}</h2>
+<div class="print">
 
-    <p>{{ 'FROM' | translate }}: <strong>{{message.Sender.Name}} {{message.Sender.Address}}</strong></p>
-    <p ng-if="message.ToList.length > 0">{{ 'TO' | translate }}: <strong>{{ getEmails(message.ToList) }}</strong></p>
-    <p ng-if="message.CCList.length > 0">{{ 'CC' | translate }}: {{ getEmails(message.CCList) }}</p>
-    <p>{{ 'DATE' | translate }}: <strong>{{ message.Time | longReadableTime }}</strong></p>
+    <p>
+        <span colspan="2">
+            <h1 style="padding: 1rem 0;">{{ message.Subject }}</h1>
+        </span>
+    </p>
 
-    <hr />
+    <hr>
 
-    <div ng-init="displayContent(true)" ng-bind-html="content"></div>
+    <p>
+        <span style="width:14rem" width="14rem">
+            <span ng-show=" message.Location != '2' ">Received: </span>
+            <span ng-show=" message.Location == '2' ">Sent: </span>
+        </span>
+        <span>
+            <i class="fa fa-reply" ng-show="message.IsReplied === 1"></i>
+            <i class="fa fa-reply-all" ng-show="message.IsRepliedAll === 1"></i>
+            <i class="fa fa-mail-forward" ng-show="message.IsForwarded === 1"></i>
+            <i class="fa fa-paperclip" ng-show="message.NumAttachments > 0"></i>
+            <i class="fa fa-lock"></i>
+            <b>{{ message.Time | localReadableTime }}</b>
+        </span>
+    </p>
 
-    <hr />
+    <p>
+        <span>{{ 'FROM' | translate }}: </span>
+        <b>{{ message.Sender.Name }} {{ message.Sender.Address }}</b>
+    </p>
 
-    <div ng-show="message.Attachments.length > 0">
-        <div class="attachment" ng-repeat="attachment in message.Attachments">
-            {{attachment.Name}} - {{attachment.MIMEType}} - {{attachment.Size | humanSize}}
-        </div>
-    </div>
+    <p ng-if="message.ToList.length">
+        <span>{{ 'TO' | translate }}: </span>
+        <b ng-repeat="email in ::message.ToList">
+        {{ email.Name }} {{ email.Address }}<i ng-hide="$last">, </i>
+        </b>
+    </p>
+
+    <p ng-if="message.CCList.length">
+        <span>{{ 'CC' | translate }}: </span>
+        <b ng-repeat="email in ::message.CCList">
+        {{ email.Name }} {{ email.Address }}<i ng-hide="$last">, </i>
+        </b>
+    </p>
+
+    <p ng-if="message.BCCList.length">
+        <span>{{ 'BCC' | translate }}: </span>
+        <b ng-repeat="email in ::message.BCCList">
+        {{ email.Name }} {{ email.Address }}<i ng-hide="$last">, </i>
+        </b>
+    </p>
+
+    <p ng-show="message.NumAttachments > 0">
+        <span>
+            {{message.NumAttachments}}
+            <i ng-hide="message.NumAttachments === 1">{{ 'ATTACHMENTS' | translate }} </i>
+            <i ng-show="message.NumAttachments === 1">{{ 'ATTACHMENT' | translate }} </i>
+            ({{ message.sizeAttachments() | humanSize }})
+        </span>
+        <span>
+            <b
+            ng-repeat="attachment in message.Attachments"
+            class="pm_button">
+                <i class="fa fa-archive-o" ng-show="(attachment.MIMEType.indexOf('zip') != -1)"></i>
+                <i class="fa fa-audio-o" ng-show="(attachment.MIMEType.indexOf('mp3') != -1)"></i>
+                <i class="fa fa-code-o" ng-show="(attachment.MIMEType.indexOf('javascript') != -1)"></i>
+                <i class="fa fa-excel-o" ng-show="(attachment.MIMEType.indexOf('xls') != -1)"></i>
+                <i class="fa fa-image-o" ng-show="(attachment.MIMEType.indexOf('image') != -1)"></i>
+                <i class="fa fa-movie-o" ng-show="(attachment.MIMEType.indexOf('mov') != -1)"></i>
+                <i class="fa fa-pdf-o" ng-show="(attachment.MIMEType.indexOf('pdf') != -1)"></i>
+                <i class="fa fa-powerpoint-o" ng-show="(attachment.MIMEType.indexOf('power') != -1)"></i>
+                <i class="fa fa-word-o" ng-show="(attachment.MIMEType.indexOf('word') != -1)"></i>
+                <strong>{{ attachment.Name }}</strong> ({{attachment.Size | humanSize}})
+            </b>
+        </span>
+    </p>
+
+    <hr>
+
 </div>
+
+<div style="padding: 1rem;" ng-bind-html="message.decryptedBody"></div>

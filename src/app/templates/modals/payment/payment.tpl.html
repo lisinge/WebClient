@@ -1,0 +1,131 @@
+<div class="modal-content">
+    <div class="modal-header">
+        <h4 class="modal-title">{{ 'PAYMENT' | translate }}</h4>
+    </div>
+    <div class="modal-body pm_form">
+        <div class="pm_grid">
+            <div class="col-1-2">
+                <table class="pm_table margin">
+                    <thead>
+                        <tr>
+                            <th class="desc">{{ 'PLAN' | translate }}</th>
+                            <th class="price">{{ 'PRICE' | translate }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="plan in ctrl.plans | filter: {Type: 1}">
+                            <td class="desc">
+                                <div>{{ plan.Title }} {{ 'PLAN' | translate }}</div>
+                                <div><span class="space"></span>{{ ctrl.count('MaxSpace') | humanSize }} {{ 'STORAGE' | translate }}</div>
+                                <div><span class="space"></span>{{ ctrl.count('MaxDomains') }} <span ng-show="ctrl.count('MaxDomains') === 1">{{ 'CUSTOM_DOMAIN' | translate }}</span><span ng-show="ctrl.count('MaxDomains') > 1">{{ 'CUSTOM_DOMAINS' | translate }}</span></div>
+                                <div><span class="space"></span>{{ ctrl.count('MaxAddresses') }} {{ 'ADDRESSES' | translate }}</div>
+                            </td>
+                            <td class="price text-right">
+                                <strong ng-show="ctrl.valid.Cycle === 1">{{ ctrl.valid.Amount / 100 | currency: plan.Currency }}</strong>
+                                <strong ng-show="ctrl.valid.Cycle === 12">{{ ctrl.valid.Amount / 100 / 12 | currency: plan.Currency }}/mo</strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="desc">
+                                <strong ng-show="ctrl.valid.Cycle === 1">{{ 'TOTAL_PER_MONTH' | translate }} (incl. taxes)</strong>
+                                <strong ng-show="ctrl.valid.Cycle === 12">{{ 'TOTAL_PER_YEAR' | translate }} (incl. taxes)</strong>
+                            </td>
+                            <td class="price text-right">
+                                <strong>{{ ctrl.valid.Amount / 100 | currency: ctrl.valid.Currency }}</strong>
+                            </td>
+                        </tr>
+                        <tr ng-show="ctrl.valid.Proration !== 0">
+                            <td class="desc">{{ 'PRORATION' | translate }}</td>
+                            <td class="text-green price text-right"><strong>{{ ctrl.valid.Proration / 100 | currency: ctrl.valid.Currency }}</strong></td>
+                        </tr>
+                        <tr ng-show="ctrl.valid.CouponDiscount !== 0">
+                            <td class="desc">{{ 'COUPON' | translate }}</td>
+                            <td class="text-green price text-right"><strong>{{ ctrl.valid.CouponDiscount / 100 | currency: ctrl.valid.Currency }}</strong></td>
+                        </tr>
+                        <tr ng-show="ctrl.valid.Credit !== 0">
+                            <td class="desc">{{ 'CREDIT' | translate }}</td>
+                            <td class="text-green price text-right"><strong>{{ ctrl.valid.Credit / 100 | currency: ctrl.valid.Currency }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="desc"><strong>{{ 'AMOUNT_DUE' | translate }}</strong></td>
+                            <td class="price text-right"><strong>{{ ctrl.valid.AmountDue / 100 | currency: ctrl.valid.Currency }}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="text-center alert alert-info" ng-show="ctrl.valid.Cycle === 1">
+                    <p>
+                        <strong class="text-green">Save 20% with the annual plan!</strong>
+                    </p>
+                    <p>
+                        <button type="button" class="pm_button primary" ng-click="ctrl.yearly()">{{ 'PAY_ANNUALLY' | translate }}</button>
+                    </p>
+                </div>
+            </div>
+            <div class="col-1-2">
+                <!-- <div class="input-icon margin">
+                    <i class="fa fa-briefcase"></i>
+                    <input type="text" ng-model="ctrl.organizationName" placeholder="{{ 'ORGANIZATION_NAME' | translate }}" />
+                </div> -->
+                <div ng-hide="ctrl.valid.AmountDue === 0">
+                    <div class="margin">
+                        <input type="text" ng-model="ctrl.fullname" ng-change="ctrl.cardChange = true" ng-model-options="{updateOn: 'blur'}" placeholder="{{ 'FULLNAME' | translate }}" />
+                    </div>
+                    <div class="pm_grid margin">
+                        <div class="col-2-3">
+                            <span class="pm_select">
+                                <select ng-model="ctrl.country" ng-change="ctrl.cardChange = true" ng-options="country.label for country in ctrl.countries | orderBy: 'priority'"></select>
+                                <i class="fa fa-angle-down"></i>
+                            </span>
+                        </div>
+                        <div class="col-1-3">
+                            <input type="text" minlength="3" maxlength="9" autocomplete="off" ng-model="ctrl.zip" ng-change="ctrl.cardChange = true" ng-model-options="{updateOn: 'blur'}" placeholder="{{ 'ZIP_CODE' | translate }}" required />
+                        </div>
+                    </div>
+                    <div class="input-icon margin">
+                        <card-icon number="ctrl.number"></card-icon>
+                        <input type="text" maxlength="20" autocomplete="off" ng-model="ctrl.number" ng-change="ctrl.cardChange = true" ng-model-options="{updateOn: 'blur'}" placeholder="{{ 'CARD_NUMBER' | translate }}" required />
+                    </div>
+                    <div class="pm_grid margin">
+                        <div class="col-1-3">
+                            <div class="input-icon">
+                                <i class="fa fa-calendar"></i>
+                                <input type="text" maxlength="2" autocomplete="off" ng-model="ctrl.month" ng-change="ctrl.cardChange = true" ng-model-options="{updateOn: 'blur'}" placeholder="MM" pt-tooltip="{{ 'MONTH' | translate }}" required />
+                            </div>
+                        </div>
+                        <div class="col-1-3">
+                            <div class="input-icon">
+                                <i class="fa fa-calendar"></i>
+                                <input type="text" maxlength="4" autocomplete="off" ng-model="ctrl.year" ng-change="ctrl.cardChange = true" ng-model-options="{updateOn: 'blur'}" placeholder="YY" pt-tooltip="{{ 'YEAR' | translate }}" required />
+                            </div>
+                        </div>
+                        <div class="col-1-3">
+                            <div class="input-icon">
+                                <i class="fa fa-lock"></i>
+                                <input type="text" maxlength="4" autocomplete="off" ng-model="ctrl.cvc" ng-change="ctrl.cardChange = true" ng-model-options="{updateOn: 'blur'}" placeholder="CVC" pt-tooltip="{{ 'CARD_VALIDATION_CODE' | translate }}" required />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p ng-show="ctrl.displayCoupon === false">
+                    <a href="#" ng-click="ctrl.displayCoupon = true">{{ 'ADD_COUPON'}}</a>
+                </p>
+                <div class="pm_grid" ng-show="ctrl.displayCoupon === true">
+                    <div class="col-2-3">
+                        <div class="input-icon">
+                            <i class="fa fa-tag"></i>
+                            <input type="text" ng-model="ctrl.coupon" placeholder="{{ 'COUPON' | translate }}" />
+                        </div>
+                    </div>
+                    <div class="col-1-3">
+                        <button type="button" class="pm_button primary" ng-click="ctrl.apply()">{{ 'APPLY' | translate }}</button>
+                    </div>
+                </div>
+                <p>By clicking submit, you agree to our <a href="https://protonmail.com/terms-and-conditions" target="_blank">Terms and Conditions</a>.</p>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-footer">
+    <button type="button" class="pm_button" ng-click="ctrl.cancel()">{{ 'CANCEL' | translate }}</button>
+    <button type="button" class="pm_button primary pull-right" ng-click="ctrl.submit()">{{ 'SUBMIT' | translate }}</button>
+</div>

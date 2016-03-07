@@ -3,7 +3,7 @@ angular.module("proton.models.contact", [])
 .factory("Contact", function($http, url) {
 
     var Contact = {
-        get: function() {
+        query: function() {
             return $http.get(url.get() + '/contacts');
         },
         edit: function(contact) {
@@ -19,38 +19,6 @@ angular.module("proton.models.contact", [])
             return $http.delete(url.get() + '/contacts');
         }
     };
-
-    Contact.index = new Bloodhound({
-        name: "contacts",
-        local: [],
-        queryTokenizer: Bloodhound.tokenizers.whitespace,
-        datumTokenizer: function(datum) {
-            var datas = _.union(
-                Bloodhound.tokenizers.whitespace(datum.Email),
-                Bloodhound.tokenizers.whitespace(datum.Name)
-            );
-
-            _.each(datas, function(data) {
-                    var i = 0;
-
-                    while((i + 1) < data.length) {
-                        datas.push(data.substr(i, data.length));
-                        i++;
-                    }
-            });
-
-            return datas;
-        }
-    });
-
-    _.extend(Contact.index, {
-        updateWith: function(list) {
-            Contact.index.clear();
-            Contact.index.add(list);
-        }
-    });
-
-    Contact.index.initialize();
 
     return Contact;
 });

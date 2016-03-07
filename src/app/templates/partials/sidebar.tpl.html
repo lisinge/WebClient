@@ -1,140 +1,131 @@
-<div ng-controller="SidebarController">
-    <div id="sidebarWrap">
-        <ul class="list-group">
-            <li class="list-group-item hidden-xs hidden-sm">
-                <a href="/inbox" class="logo btn">
-                    <img src="/assets/img/protonmail.svg" id="logo" alt="ProtonMail">
-                </a>
-            </li>
-            <li class="list-group-item" id="compose_button">
-                <a class="btn btn-composer" ng-click="compose()" id="composeBtn">
-                    <span class="fa fa-pencil"></span> <span class="hidden-xs hidden-sm">{{ 'COMPOSE' | translate }}</span>
-                </a>
-            </li>
-        </ul>
-        <ul class="list-group" id="topMenu">
-            <li
-            id="inbox-li"
-            class="list-group-item"
-            data-unread="0"
-            data-drop="true"
-            jqyoui-droppable="{onDrop: 'onDropMessage(\'inbox\')'}"
-            data-jqyoui-options="droppableOptions"
-            ng-model="droppedMessages">
-                <a
-                href="/inbox"
-                title="{{ 'INBOX' | translate }}"
-                class="btn"
-                ng-click="goTo('secured.inbox'); spinIcon();"
-                ng-class="{ active: ('secured.inbox.**' | includedByState) }">
-                    <span class="label hidden-xs hidden-sm" ng-hide="getUnread('inbox')<1" ng-class="{active: getUnread('inbox') > 0}">{{ getUnread('inbox') }}</span>
-                    <i
-                    class="fa fa-repeat pull-right hidden-xs hidden-sm"
-                    ng-class="{ 'spinMe': spinMe }"
-                    ng-show="getUnread('inbox')>-1"></i>
-                    <span class="fa fa-inbox"></span> <span class="hidden-xs hidden-sm">{{ 'INBOX' | translate }}</span>
-                </a>
-            </li>
-            <li
-            class="list-group-item"
-            data-unread="0">
-                <a href="/drafts" title="{{ 'DRAFTS' | translate }}" class="btn" ng-click="goTo('secured.drafts')" ng-class="{ active: ('secured.drafts.**' | includedByState) }">
-                    <span class="label hidden-xs hidden-sm" ng-class="{active: getUnread('drafts') > 0}">{{ getUnread('drafts') }}</span>
-                    <span class="fa fa-file-text-o"></span> <span class="hidden-xs hidden-sm">{{ 'DRAFTS' | translate }}</span>
-                </a>
-            </li>
-            <li
-            class="list-group-item"
-            data-unread="0">
-                <a href="/sent" title="{{ 'SENT' | translate }}" class="btn" ng-click="goTo('secured.sent')" ng-class="{ active: ('secured.sent.**' | includedByState) }">
-                    <span class="label hidden-xs hidden-sm" ng-class="{active: getUnread('sent') > 0}">{{ getUnread('sent') }}</span>
-                    <span class="fa fa-sign-out"></span> <span class="hidden-xs hidden-sm">{{ 'SENT' | translate }}</span>
-                </a>
-            </li>
-            <li
-            class="list-group-item"
-            data-drop="true"
-            jqyoui-droppable="{onDrop: 'onDropMessage(\'starred\')'}"
-            data-jqyoui-options="droppableOptions"
-            ng-model="droppedMessages">
-                <a href="/starred" title="{{ 'STARRED' | translate }}" class="btn" ng-click="goTo('secured.starred')" ng-class="{ active: ('secured.starred.**' | includedByState) }">
-                    <span class="label hidden-xs hidden-sm" ng-class="{active: getUnread('starred') > 0}">{{ getUnread('starred') }}</span>
-                    <span class="fa fa-star-o"></span> <span class="hidden-xs hidden-sm">{{ 'STARRED' | translate }}</span>
-                </a>
-            </li>
-        </ul>
-        <div class="divider"></div>
-        <ul class="list-group">
-            <li
-            class="list-group-item"
-            data-drop="true"
-            jqyoui-droppable="{onDrop: 'onDropMessage(\'archive\')'}"
-            data-jqyoui-options="droppableOptions"
-            ng-model="droppedMessages">
-                <a href="/archive" title="{{ 'ARCHIVE' | translate }}" class="btn" ng-click="goTo('secured.archive')" ng-class="{ active: ('secured.archive.**' | includedByState) }">
-                    <span class="label hidden-xs hidden-sm" ng-class="{active: getUnread('archive') > 0}">{{ getUnread('archive') }}</span>
-                    <span class="fa fa-archive"></span> <span class="hidden-xs hidden-sm">{{ 'ARCHIVE' | translate }}</span>
-                </a>
-            </li>
-            <li
-            class="list-group-item"
-            data-drop="true"
-            jqyoui-droppable="{onDrop: 'onDropMessage(\'spam\')'}"
-            data-jqyoui-options="droppableOptions"
-            ng-model="droppedMessages">
-                <a href="/spam" title="{{ 'SPAM' | translate }}" class="btn" ng-click="goTo('secured.spam')" ng-class="{ active: ('secured.spam.**' | includedByState) }">
-                    <span class="label hidden-xs hidden-sm" ng-class="{active: getUnread('spam') > 0}">{{ getUnread('spam') }}</span>
-                    <span class="fa fa-spam-flame"></span> <span class="hidden-xs hidden-sm">{{ 'SPAM' | translate }}</span>
-                </a>
-            </li>
-            <li
-            class="list-group-item"
-            data-unread="0"
-            data-drop="true"
-            jqyoui-droppable="{onDrop: 'onDropMessage(\'trash\')'}"
-            data-jqyoui-options="droppableOptions"
-            ng-model="droppedMessages">
-                <a href="trash" title="{{ 'TRASH' | translate }}" class="btn" ng-click="goTo('secured.trash')" ng-class="{ active: ('secured.trash.**' | includedByState) }">
-                    <span class="label hidden-xs hidden-sm" ng-class="{active: getUnread('trash') > 0}">{{ getUnread('trash') }}</span>
-                    <span class="fa fa-trash-o"></span> <span class="hidden-xs hidden-sm">{{ 'TRASH' | translate }}</span>
-                </a>
-            </li>
-        </ul>
-        <div class="divider"></div>
-        <div class="hidden-xs" id="sidebarLabels">
-            <ul class="list-group">
-                <li
-                class="list-group-item"
-                ng-repeat="label in labels | orderBy: 'Order'"
-                ng-hide="label.Display"
-                data-drop="true"
-                jqyoui-droppable="{onDrop: 'onDropMessage(\'{{label.ID}}\')'}"
-                data-jqyoui-options="droppableOptions"
-                ng-model="droppedMessages">
-                    <a ng-click="goToLabel(label)" title="{{ label.Name }}" class="btn" ng-class="{'active': activeLabel(label) }">
-                        <span class="label hidden-xs hidden-sm" ng-class="{active: getUnread('label', label.ID) > 0}">{{ getUnread('label', label.ID) }}</span>
-                        <span class="fa fa-tag" ng-style="color(label)"></span> <span class="hidden-xs hidden-sm">{{ label.Name }}</span>
+<section
+class="pm_opensans sidebar"
+ng-controller="SidebarController"
+ng-hide="mobileMode || !sidebarMode">
+
+    <a class="compose pm_button primary" ng-click="compose()">
+        <i class="fa fa-pencil"></i> {{ 'COMPOSE' | translate }}
+    </a>
+
+    <ul class="menu">
+        <li ng-class="{ active: ('secured.inbox.**' | includedByState) }">
+            <a href="/inbox" title="{{ 'INBOX' | translate }}" ng-click="goTo('secured.inbox');">
+                <button class="fa fa-repeat pull-right refresh" title="{{ 'REFRESH' | translate }}" ng-class="{ 'spinMe': spinMe }" ng-show="'secured.inbox.**' | includedByState"></button>
+                <i class="fa fa-inbox"></i>
+                <span>{{ 'INBOX' | translate }}</span>
+                <em ng-bind="unread('inbox')"></em>
+            </a>
+        </li>
+        <li ng-class="{ active: ('secured.drafts.**' | includedByState) }">
+            <a href="/drafts" title="{{ 'DRAFTS' | translate }}" ng-click="goTo('secured.drafts')">
+                <button class="fa fa-repeat pull-right refresh" title="{{ 'REFRESH' | translate }}" ng-class="{ 'spinMe': spinMe }" ng-show="'secured.drafts.**' | includedByState"></button>
+                <i class="fa fa-file-text-o"></i>
+                <span>{{ 'DRAFTS' | translate }}</span>
+                <em ng-bind="unread('drafts')"></em>
+            </a>
+        </li>
+        <li ng-class="{ active: ('secured.sent.**' | includedByState) }">
+            <a href="/sent" title="{{ 'SENT' | translate }}" ng-click="goTo('secured.sent')">
+                <button class="fa fa-repeat pull-right refresh" title="{{ 'REFRESH' | translate }}" ng-class="{ 'spinMe': spinMe }" ng-show="'secured.sent.**' | includedByState"></button>
+                <i class="fa fa-send"></i>
+                <span>{{ 'SENT' | translate }}</span>
+                <em ng-bind="unread('sent')"></em>
+            </a>
+        </li>
+        <li ng-class="{ active: ('secured.starred.**' | includedByState) }">
+            <a href="/starred" title="{{ 'STARRED' | translate }}" ng-click="goTo('secured.starred')">
+                <button class="fa fa-repeat pull-right refresh" title="{{ 'REFRESH' | translate }}" ng-class="{ 'spinMe': spinMe }" ng-show="'secured.starred.**' | includedByState"></button>
+                <i class="fa fa-star-o"></i>
+                <span>{{ 'STARRED' | translate }}</span>
+                <em ng-bind="unread('starred')"></em>
+            </a>
+        </li>
+        <li ng-class="{ active: ('secured.archive.**' | includedByState) }">
+            <a href="/archive" title="{{ 'ARCHIVE' | translate }}" ng-click="goTo('secured.archive')">
+                <button class="fa fa-repeat pull-right refresh" title="{{ 'REFRESH' | translate }}" ng-class="{ 'spinMe': spinMe }" ng-show="'secured.archive.**' | includedByState"></button>
+                <i class="fa fa-archive"></i>
+                <span>{{ 'ARCHIVE' | translate }}</span>
+                <em ng-bind="unread('archive')"></em>
+            </a>
+        </li>
+        <li ng-class="{ active: ('secured.spam.**' | includedByState) }">
+            <a href="/spam" title="{{ 'SPAM' | translate }}" ng-click="goTo('secured.spam')">
+                <button class="fa fa-repeat pull-right refresh" title="{{ 'REFRESH' | translate }}" ng-class="{ 'spinMe': spinMe }" ng-show="'secured.spam.**' | includedByState"></button>
+                <i class="fa fa-ban"></i>
+                <span>{{ 'SPAM' | translate }}</span>
+                <em ng-bind="unread('spam')"></em>
+            </a>
+        </li>
+        <li ng-class="{ active: ('secured.trash.**' | includedByState) }">
+            <a href="/trash" title="{{ 'TRASH' | translate }}" ng-click="goTo('secured.trash')">
+                <button class="fa fa-repeat pull-right refresh" title="{{ 'REFRESH' | translate }}" ng-class="{ 'spinMe': spinMe }" ng-show="'secured.trash.**' | includedByState"></button>
+                <i class="fa fa-trash-o"></i>
+                <span>{{ 'TRASH' | translate }}</span>
+                <em ng-bind="unread('trash')"></em>
+            </a>
+        </li>
+    </ul>
+
+    <ul class="menu" id="labelSettings">
+        <li>
+            <a ui-sref="secured.labels">
+                <i class="fa fa-cog"></i>
+                <span id="tour-label-settings">{{ 'LABEL_SETTINGS' | translate }}</span>
+            </a>
+        </li>
+    </ul>
+
+<!--
+    <scrollbar name="scrollbarName" ng-label-height>
+        <div id="sidebarLabels">
+            <div class="labels">
+                <ul>
+                    <li ng-repeat="label in labels | orderBy: 'Order'" ng-class="{'active': activeLabel(label)}">
+                        <a ui-sref="secured.label({label: '{{label.ID}}' })" title="{{ label.Name }}" class="btn">
+                            <i class="fa fa-tag" ng-style="color(label)"></i>
+                            <span>{{ label.Name }}</span>
+                            <em ng-bind="unread('label', label.ID)"></em>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </scrollbar>
+-->
+
+    <div id="sidebarLabels">
+        <div class="labels">
+            <ul>
+                <li ng-repeat="label in labels | orderBy: 'Order'" ng-class="{'active': activeLabel(label)}">
+                    <a ui-sref="secured.label({label: '{{label.ID}}' })" title="{{ label.Name }}" class="btn">
+                        <i class="fa fa-tag" ng-style="color(label)"></i>
+                        <span>{{ label.Name }}</span>
+                        <em ng-bind="unread('label', label.ID)"></em>
                     </a>
                 </li>
             </ul>
         </div>
     </div>
-    <div class="storage">
-        <ul class="list-group info hidden-xs hidden-sm">
-            <li>
-                <a href="https://protonmail.com/blog/category/release-notes/" title="Blog ProtonMail" target="_blank">Beta {{ appVersion }}</a>
-            </li>
-            <li>
-                <a title="{{ 'MORE_INFORMATION' | translate }}" href="/upgrade-storage" target="_blank" class="sizebar">
-                    {{ 'STORAGE' | translate }}:
-                    <span class="pull-right">{{ renderStorageBar() }}</span>
+
+    <div class="footer">
+        <div class="wrap">
+            <div class="link" ng-show="user.Role === 0 || user.Role === 2">
+                <a ui-sref="secured.dashboard">
+                    {{ 'UPGRADE_STORAGE' | translate }}
                 </a>
-            </li>
-            <li>
-                <div class="sizeBar">
-                    <span class="fill" ng-style="sizeBar()"></span>
-                </div>
-            </li>
-        </ul>
+            </div>
+            <div class="storage text-center">
+                <strong title="{{ 'STORAGE' | translate }}">{{ user.UsedSpace | humanSize }} / {{ user.MaxSpace | humanSize }}</strong>
+            </div>
+            <div class="bar">
+                <em style="width: {{ storagePercentage() }}%"></em>
+            </div>
+        </div>
+        <a href="https://protonmail.com/blog/protonmail-beta-v3-1-release-notes/" target="_blank" class="version" title="{{ dateVersion }}" target="_blank">
+            ProtonMail {{ appVersion }}
+        </a>
     </div>
-</div>
+
+</section>
+
+<ng-include src="'templates/partials/sidebar-responsive.tpl.html'"></ng-include>

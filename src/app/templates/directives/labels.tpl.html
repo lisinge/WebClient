@@ -1,0 +1,27 @@
+<span class="labelDropdown">
+    <span role="menu" ng-click="$event.stopPropagation()">
+        <p ng-show="labels.length === 0" class="alert alert-info">{{ 'NO_LABELS' | translate }}</p>
+        <span ng-show="labels.length > 1" class="margin labelSearch">
+            <i class="fa fa-search"></i>
+            <input type="search" id="searchLabels" placeholder="{{ 'FILTER_LABEL' | translate }}" ng-model="searchLabels" ng-minlength="1" />
+        </span>
+        <span class="wrapper">
+            <ul class="list-group" ng-show="labels.length > 0">
+                <li class="list-group-item" ng-repeat="label in labels | filter: {Name: searchLabels} | orderBy: 'Order'">
+                    <label>
+                        <input type="checkbox" ng-model="label.Selected" />
+                        <span class="label label-pm" title="{{ label.Name }}">
+                            <i class="fa fa-tag" ng-style="color(label)"></i> {{ label.Name | limitTo: 20 }}
+                        </span>
+                    </label>
+                </li>
+            </ul>
+        </span>
+        <label ng-show="labelsSelected().length > 0">
+            <input type="checkbox" ng-model="alsoArchive" /> {{ 'ALSO_ARCHIVE' | translate }}
+        </label>
+        <p></p>
+        <button class="createLabel fa fa-plus pull-left pm_button" ng-click="createLabel()" pt-tooltip="{{ 'ADD_NEW_LABEL' | translate }}"></button>
+        <button ng-show="labels.length > 0" tabindex="1" type="button" class="pm_button primary pull-right" ng-click="save()" ng-disabled="networkActivity.loading()">{{ 'SAVE' | translate }}</button>
+    </span>
+</span>

@@ -40,7 +40,6 @@ angular.module("proton.controllers.Outside", [
             _.each($scope.message.Replies, function(reply) {
                 reply.Body = $scope.clean(reply.Body);
             });
-            tools.transformLinks('message-body');
         });
     }
 
@@ -59,14 +58,10 @@ angular.module("proton.controllers.Outside", [
 
     // start timer ago
     $scope.agoTimer = $interval(function() {
-        var time = $filter('longReadableTime')($scope.message.Time);
-
+        // Redirect to unlock view if the message is expired
         if($scope.isExpired()) {
-            // Redirect to unlock view if the message is expired
             $state.go('eo.unlock', {tag: $stateParams.tag});
         }
-
-        $scope.ago = time;
     }, 1000);
 
     $scope.$on('$destroy', function() {
@@ -168,7 +163,7 @@ angular.module("proton.controllers.Outside", [
         $scope.imagesHidden = true;
         content = DOMPurify.sanitize(content, {
             ADD_ATTR: ['target'],
-            FORBID_TAGS: ['style']
+            FORBID_TAGS: ['style', 'input', 'form']
         });
 
         return content;
@@ -207,7 +202,7 @@ angular.module("proton.controllers.Outside", [
             var attachmentPromise;
             var element = $(file.previewElement);
 
-            if (totalSize < (sizeLimit * 1024 * 1024)) {
+            if (totalSize < (sizeLimit * CONSTANTS.BASE_SIZE * CONSTANTS.BASE_SIZE)) {
                 var publicKey = $scope.message.publicKey;
 
                 attachments.load(file, publicKey).then(function(packets) {
@@ -221,6 +216,7 @@ angular.module("proton.controllers.Outside", [
                         KeyPackets: new Blob([packets.keys]),
                         DataPacket: new Blob([packets.data])
                     });
+                    message.NumAttachments = message.Attachments.length;
                 }, function(error) {
                     message.uploading = false;
                     $scope.resetFile();
@@ -229,7 +225,7 @@ angular.module("proton.controllers.Outside", [
                 });
             } else {
                 // Attachment size error.
-                notify({message: 'Attachments are limited to ' + sizeLimit + ' MB. Total attached would be: ' + Math.round(10*totalSize/1024/1024)/10 + ' MB.', classes: 'notification-danger'});
+                notify({message: 'Attachments are limited to ' + sizeLimit + ' MB. Total attached would be: ' + Math.round(10*totalSize/CONSTANTS.BASE_SIZE/CONSTANTS.BASE_SIZE)/10 + ' MB.', classes: 'notification-danger'});
                 message.uploading = false;
                 $scope.resetFile();
                 // TODO remove file in droparea

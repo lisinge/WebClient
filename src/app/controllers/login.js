@@ -18,7 +18,8 @@ angular.module("proton.controllers.Auth", [
     networkActivityTracker,
     notify,
     loginModal,
-    pmcw
+    pmcw,
+    tools
 ) {
     $rootScope.pageName = "Login";
     $rootScope.app_version = CONFIG.app_version;
@@ -36,6 +37,11 @@ angular.module("proton.controllers.Auth", [
         }
     }
 
+    var clearErrors = function() {
+        $scope.error = null;
+        notify.closeAll();
+    };
+
     $scope.initialization = function() {
         var ua = window.navigator.userAgent;
         var iOS = !!ua.match(/iPad/i) || !!ua.match(/iPhone/i);
@@ -47,11 +53,24 @@ angular.module("proton.controllers.Auth", [
         } else {
             $('input.focus').focus();
         }
-        if ($location.hash()==='help') {
+
+        // If #help
+        if ($location.hash() === 'help') {
             $scope.getLoginHelp();
+        }
+
+        if (tools.hasSessionStorage() === false) {
+            notify({
+                message: 'You are in Private Mode or have Session Storage disabled.\nPlease deactivate Private Mode and then reload the page.',
+                classes: 'notification-danger',
+                duration: '0'
+            });
         }
     };
 
+    /**
+     * Open login modal to help the user
+     */
     $scope.getLoginHelp = function() {
         loginModal.activate({
             params: {
@@ -60,11 +79,6 @@ angular.module("proton.controllers.Auth", [
                 }
             }
         });
-    };
-
-    var clearErrors = function() {
-        $scope.error = null;
-        notify.closeAll();
     };
 
     // this does not add security and was only active for less than a day in 2013.
@@ -80,8 +94,9 @@ angular.module("proton.controllers.Auth", [
         return pmcrypto.getHashedPassword(salt+password);
     };
 
-    $rootScope.tryLogin = function() {
-        $('input').blur();
+    $scope.login = function() {
+        angular.element('input').blur();
+        angular.element('#pm_login').attr({action:'/*'});
         clearErrors();
 
         // Check username and password
@@ -99,7 +114,7 @@ angular.module("proton.controllers.Auth", [
         }
 
         // Transform to lowercase and remove the domain
-        $scope.username = $scope.username.toLowerCase().split('@')[0];
+        $scope.username = $scope.username.toLowerCase();
 
         // Custom validation
         try {
@@ -150,12 +165,15 @@ angular.module("proton.controllers.Auth", [
                     } else if (angular.isDefined(result.data) && angular.isDefined(result.data.AccessToken)) {
                         // TODO: where is tempUser used?
                         $rootScope.isLoggedIn = true;
-                        $rootScope.tempUser = {};
-                        $rootScope.tempUser.username = $scope.username;
-                        $rootScope.tempUser.password = $scope.password;
+                        $rootScope.tempUser = {
+                            username: $scope.username,
+                            password: $scope.password
+                        };
 
-                        $state.go("login.unlock");
+                        $state.go('login.unlock');
                         return;
+                    } else if (angular.isDefined(result.data) && angular.isDefined(result.data.Code) && result.data.Code === 5003) {
+                        // Nothing
                     } else if (angular.isDefined(result.data) && angular.isDefined(result.data.Error)) {
                         // TODO: This might be buggy
 	                	var error  = (angular.isDefined(result.data.ErrorDescription) && result.data.ErrorDescription.length) ? result.data.ErrorDescription : result.data.Error;
@@ -187,7 +205,7 @@ angular.module("proton.controllers.Auth", [
         );
     };
 
-    $scope.tryUnlock = function() {
+    $scope.unlock = function() {
         // Make local so extensions (or Angular) can't mess with it by clearing the form too early
         var mailboxPassword = $scope.mailboxPassword;
 
@@ -208,10 +226,13 @@ angular.module("proton.controllers.Auth", [
                         function(resp) {
                             $log.debug('setAuthCookie:resp'+resp);
                             authentication.savePassword(mailboxPassword);
+                            $rootScope.isLoggedIn = authentication.isLoggedIn();
+                            $rootScope.isLocked = authentication.isLocked();
+                            $rootScope.isSecure = authentication.isSecured();
                             $state.go("secured.inbox");
                         },
                         function(err) {
-                            $log.error('tryUnlock', err);
+                            $log.error('unlock', err);
                             notify({
                                 classes: 'notification-danger',
                                 message: err.message
@@ -221,7 +242,7 @@ angular.module("proton.controllers.Auth", [
                     );
                 },
                 function(err) {
-                    $log.error('tryUnlock', err);
+                    $log.error('unlock', err);
 
                     // clear password for user
                     $scope.selectPassword();
@@ -235,17 +256,6 @@ angular.module("proton.controllers.Auth", [
         );
     };
 
-    $scope.keypress = function(event) {
-        if (event.keyCode === 13) {
-            event.preventDefault();
-            if ($state.is("login.unlock")) {
-                $scope.tryUnlock.call(this);
-            } else {
-                $scope.tryLogin.call(this);
-            }
-        }
-    };
-
     $scope.selectPassword = function() {
         var input = $('#password');
 
@@ -254,32 +264,4 @@ angular.module("proton.controllers.Auth", [
     };
 
     $scope.initialization();
-})
-
-.controller("SecuredController", function(
-    $scope,
-    $rootScope,
-    authentication,
-    eventManager,
-    Message
-) {
-    $scope.user = authentication.user;
-    $scope.logout = $rootScope.logout;
-
-    eventManager.start(authentication.user.EventID);
-
-    $rootScope.isLoggedIn = true;
-    $rootScope.isLocked = false;
-    $rootScope.isSecure = function() {
-        return authentication.isSecured();
-    };
-
-    Message.totalCount().$promise.then(function(totals) {
-        var total = {Labels:{}, Locations:{}, Starred: totals.Starred};
-
-        _.each(totals.Labels, function(obj) { total.Labels[obj.LabelID] = obj.Count; });
-        _.each(totals.Locations, function(obj) { total.Locations[obj.Location] = obj.Count; });
-
-        $rootScope.messageTotals = total;
-    });
 });

@@ -1,91 +1,145 @@
-angular.module("proton", [
-    // "ngAnimate", // We can't use the `ngAnimate`, it causes delays on application and also a problem with the iframe sandbox.
-    "ngSanitize",
-    "ngResource",
-    "ngCookies",
-    "btford.markdown",
-    "ngFileUpload",
-    "cgNotify",
-    "pikaday",
-    "toggle-switch",
-    "pascalprecht.translate",
-    "ui.bootstrap",
-    "ngDragDrop",
+angular.module('proton', [
+    'as.sortable',
+    'cgNotify',
+    'ngCookies',
+    'ngIcal',
+    'ngMessages',
+    'ngResource',
+    'ngRoute',
+    'ngSanitize',
+    'pascalprecht.translate',
+    'pikaday',
+    // 'SmoothScrollbar',
+    'ui.router',
 
     // Constant
-    "proton.constants",
+    'proton.constants',
 
     // templates
-    "templates-app",
-    "templates-common",
+    'templates-app',
+    'templates-common',
 
     // App
-    "proton.routes",
+    'proton.routes',
 
     // Models
-    "proton.models",
-    "proton.models.label",
-    "proton.models.message",
-    "proton.models.contact",
-    "proton.models.user",
-    "proton.models.reset",
-    "proton.models.bug",
-    "proton.models.setting",
-    "proton.models.attachment",
-    "proton.models.eo",
-    "proton.models.logs",
-    "proton.models.events",
+    'proton.models.keys',
+    'proton.models.addresses',
+    'proton.models.attachment',
+    'proton.models.bug',
+    'proton.models.contact',
+    'proton.models.conversations',
+    'proton.models.domains',
+    'proton.models.eo',
+    'proton.models.events',
+    'proton.models.label',
+    'proton.models.logs',
+    'proton.models.memberKeys',
+    'proton.models.members',
+    'proton.models.message',
+    'proton.models.organization',
+    'proton.models.payments',
+    'proton.models.reset',
+    'proton.models.setting',
+    'proton.models.user',
+    'proton.models',
 
     // Config
-    "proton.config",
+    'proton.config',
 
     // Services
-    "proton.authentication",
-    "proton.pmcw",
-    "proton.errorReporter",
-    "proton.networkActivity",
-    "proton.messages",
-    "proton.messages.counts",
-    "proton.modals",
-    "proton.attachments",
-    "proton.tools",
-    "proton.event",
+    'proton.actions',
+    'proton.attachments',
+    'proton.authentication',
+    'proton.cache',
+    'proton.errorReporter',
+    'proton.event',
+    'proton.modals',
+    'proton.networkActivity',
+    'proton.pmcw',
+    'proton.tools',
 
     // Directives
-    "proton.tooltip",
-    "proton.emailField",
-    "proton.enter",
-    "proton.squire",
-    "proton.locationTag",
-    "proton.dropzone",
-    "proton.labels",
-    "proton.countdown",
+    'proton.autocomplete',
+    'proton.dropdown',
+    'proton.dropzone',
+    'proton.enter',
+    'proton.height',
+    'proton.heightOutside',
+    'proton.labelHeight',
+    'proton.labels',
+    'proton.loaderTag',
+    'proton.locationTag',
+    'proton.move',
+    'proton.responsiveComposer',
+    'proton.sample',
+    'proton.sidebarHeight',
+    'proton.squire',
+    'proton.time',
+    'proton.toggle',
+    'proton.tooltip',
+    'proton.transformation',
+    'proton.maxComposerHeight',
+    'proton.drag',
+    'proton.wizard',
+    'proton.card',
 
     // Filters
-    "proton.filters.strings",
+    'proton.filters',
 
     // Controllers
-    "proton.controllers.Account",
-    "proton.controllers.Auth",
-    "proton.controllers.Bug",
-    "proton.controllers.Contacts",
-    "proton.controllers.Header",
-    "proton.controllers.Messages",
-    "proton.controllers.Messages.List",
-    "proton.controllers.Messages.View",
-    "proton.controllers.Messages.Compose",
-    "proton.controllers.Outside",
-    "proton.controllers.Search",
-    "proton.controllers.Settings",
-    "proton.controllers.Sidebar",
-    "proton.controllers.Signup",
-    "proton.controllers.Support",
-    "proton.controllers.Upgrade",
-    "proton.controllers.Wizard",
+    'proton.controllers.Setup',
+    'proton.controllers.Auth',
+    'proton.controllers.Contacts',
+    'proton.controllers.Header',
+    'proton.controllers.Conversation',
+    'proton.controllers.Conversations',
+    'proton.controllers.Message',
+    'proton.controllers.Compose',
+    'proton.controllers.Outside',
+    'proton.controllers.Secured',
+    'proton.controllers.Settings',
+    'proton.controllers.Sidebar',
+    'proton.controllers.Signup',
+    'proton.controllers.Support',
+    'proton.controllers.Upgrade',
 
     // Translations
-    "proton.translations"
+    'proton.translations'
 ])
+
+/**
+ * Check if the current browser owns some requirements
+ */
+.config(function() {
+    var is_good_prng_available = function() {
+        if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+            return true;
+        } else if (typeof window !== 'undefined' && typeof window.msCrypto === 'object' && typeof window.msCrypto.getRandomValues === 'function') {
+            return true;
+        } else {
+            return false;
+        }
+    };
+
+    var isSessionStorage_available = function() {
+        return (typeof(sessionStorage) !== 'undefined');
+    };
+
+    if(isSessionStorage_available() === false) {
+        alert('Error: sessionStorage is required to use ProtonMail.');
+        setTimeout( function() {
+            window.location = 'https://protonmail.com/support/knowledge-base/sessionstorage/';
+        }, 1000);
+    }
+
+    if(is_good_prng_available() === false) {
+        alert('Error: a PRNG is required to use ProtonMail.');
+        setTimeout( function() {
+            window.location = 'https://protonmail.com/support/knowledge-base/prng/';
+        }, 1000);
+    }
+})
 
 // Set base url from grunt config
 .provider('url', function urlProvider() {
@@ -111,6 +165,7 @@ angular.module("proton", [
 .run(function(CONSTANTS) {
     // This function clears junk from session storage. Should not be needed forever
     try {
+        var locale = window.navigator.userLanguage || window.navigator.language;
         var whitelist = [
             CONSTANTS.EVENT_ID,
             CONSTANTS.MAILBOX_PASSWORD_KEY,
@@ -131,6 +186,7 @@ angular.module("proton", [
         }
 
         window.sessionStorage.clear();
+        moment.locale(locale);
 
         for (var key in data) {
             window.sessionStorage.setItem(key, data[key]);
@@ -146,40 +202,62 @@ angular.module("proton", [
     $rootScope,
     $state,
     $timeout,
+    $window,
     authentication,
     networkActivityTracker,
+    CONSTANTS,
     notify,
     tools
 ) {
-    var debounce;
+    angular.element($window).bind('load', function() {
+        // Enable FastClick
+        FastClick.attach(document.body);
 
-    $(window).bind('resize load', function() {
-        $timeout.cancel(debounce);
-        $timeout(function() {
-            $rootScope.isMobile = tools.findBootstrapEnvironment() === 'xs';
-        }, 100);
-    });
-
-    $(window).bind('load', function() {
-        if (window.location.hash==='#spin') {
-            $('body').append('<style>.wrap, .btn{-webkit-animation: lateral 4s ease-in-out infinite;-moz-animation: lateral 4s ease-in-out infinite;}</style>');
+        if (window.location.hash==='#spin-me-right-round') {
+            $('body').append('<style>body > div * {-webkit-animation: spin 10s ease-in-out infinite;-moz-animation: spin 10s ease-in-out infinite;}</style>');
         }
     });
 
+    // Less than 1030 / Tablet Mode
+    // can pass in show (true/false) to explicity show/hide
+    $rootScope.$on('sidebarMobileToggle', function(event, show) {
+        if (typeof show !== "undefined") {
+            $rootScope.showSidebar = show;
+        }
+        else {
+            $rootScope.showSidebar = !$rootScope.showSidebar;
+        }
+    });
+
+    $rootScope.mobileMode = false;
+    $rootScope.sidebarMode = true;
+    $rootScope.showWelcome = true;
+    $rootScope.welcome = false;
     $rootScope.browser = tools.getBrowser();
     $rootScope.terminal = false;
-    $rootScope.updateMessage = false;
+    //$rootScope.updateMessage = false;
+    $rootScope.showSidebar = false;
+    $rootScope.themeJason = false;
+    $rootScope.isLoggedIn = authentication.isLoggedIn();
+    $rootScope.isLocked = authentication.isLocked();
+    $rootScope.isSecure = authentication.isSecured();
 
-    var pageTitleTemplate = _.template(
-        "<% if (pageName) { %>" +
-        "${ pageName }" +
-        " - " +
-        "<% } %>" +
-        "ProtonMail"
-    );
+    // SVG Polyfill for Edge
+    svg4everybody();
+    svgeezy.init(false, 'png');
 
+    // Set new relative time thresholds
+    moment.relativeTimeThreshold('s', 59); // s	seconds	least number of seconds to be considered a minute
+    moment.relativeTimeThreshold('m', 59); // m	minutes	least number of minutes to be considered an hour
+    moment.relativeTimeThreshold('h', 23); // h	hours	least number of hours to be considered a day
+
+    // Manage page title
     $rootScope.$watch('pageName', function(newVal, oldVal) {
-        $document.find("title").text(pageTitleTemplate({ pageName: newVal }));
+        if(newVal) {
+            $document.find("title").text(newVal + ' | ProtonMail');
+        } else {
+            $document.find("title").text('ProtonMail');
+        }
     });
 
     $rootScope.networkActivity = networkActivityTracker;
@@ -193,56 +271,104 @@ angular.module("proton", [
         position: 'center',
         maximumOpen: 5
     });
+
+    $rootScope.mobileResponsive = function() {
+        var bodyWidth = $('body').outerWidth();
+
+        // Force Mobile
+        if ( bodyWidth > CONSTANTS.MOBILE_BREAKPOINT ) {
+            $rootScope.mobileMode = false;
+            if (authentication.user && authentication.user.ViewLayout===0 && $rootScope.rowMode) {
+                $rootScope.rowMode = false;
+                $rootScope.layoutMode = 'columns';
+            }
+            else if (authentication.user && authentication.user.ViewLayout===1) {
+                $rootScope.rowMode = true;
+                $rootScope.layoutMode = 'rows';
+            }
+        }
+        else if ( bodyWidth <= CONSTANTS.MOBILE_BREAKPOINT ) {
+            $rootScope.mobileMode = true;
+            $rootScope.rowMode = false;
+            $rootScope.layoutMode = 'columns';
+            $rootScope.$broadcast('tourEnd');
+        }
+    };
+
+    angular.element($window).bind('resize', $window._.debounce(function() {
+        $rootScope.mobileResponsive();
+    }, 30));
+    angular.element($window).bind('orientationchange', $rootScope.mobileResponsive());
+
+    $rootScope.mobileResponsive();
+
 })
 
 //
 // Redirection if not authentified
 //
 .factory('authHttpResponseInterceptor', function($q, $injector, $rootScope) {
+    var notification = false;
+    var upgrade_notification = false;
+
     return {
         response: function(response) {
+            // Close notification if Internet wake up
+            if (notification) {
+                notification.close();
+                notification = false;
+            }
+
             if (angular.isDefined(response.data) && angular.isDefined(response.data.Code)) {
                 // app update needd
-                if (response.data.Code===5003) {
-                    if ($rootScope.updateMessage===false) {
-                        $rootScope.updateMessage = true;
-                        $injector.get('notify')({
-                            classes: 'notification-info noclose',
-                            message: 'A new version of ProtonMail is available. Please refresh this page and then logout and log back in to automatically update.',
-                            duration: '0'
-                        });
+                if (response.data.Code === 5003) {
+                    if ( upgrade_notification ) {
+                        upgrade_notification.close();
                     }
+
+                    upgrade_notification = $injector.get('notify')({
+                        classes: 'notification-info noclose',
+                        message: 'A new version of ProtonMail is available. Please refresh this page and then logout and log back in to automatically update.',
+                        duration: '0'
+                    });
                 }
-                else if(response.data.Code===5004) {
+                else if(response.data.Code === 5004) {
                     $injector.get('notify')({
                         classes: 'notification-danger',
                         message: 'Non-integer API version requested.'
                     });
                 }
                 // unsupported api
-                else if (response.data.Code===5005) {
+                else if (response.data.Code === 5005) {
                     $injector.get('notify')({
                         classes: 'notification-danger',
                         message: 'Unsupported API version.'
                     });
                 }
                 // site offline
-                else if (response.data.Code===7001) {
+                else if (response.data.Code === 7001) {
                     $injector.get('notify')({
                         classes: 'notification-info',
                         message: 'The ProtonMail API is offline: '+response.data.ErrorDescription
                     });
                 }
             }
+
             return response || $q.when(response);
         },
         responseError: function(rejection) {
-            if(rejection.status === 0) {
-                $injector.get('notify')({
-                    message: 'You are not connected to the Internet.',
-                    classes: 'notification-danger',
-                    duration: 0
-                });
+            if(rejection.status === 0 || rejection.status === -1) {
+                if(navigator.onLine === true) {
+                    notification = $injector.get('notify')({
+                        message: 'Could not connect to server.',
+                        classes: 'notification-danger'
+                    });
+                } else {
+                    notification = $injector.get('notify')({
+                        message: 'Not connected to Internet.',
+                        classes: 'notification-danger'
+                    });
+                }
             } else if (rejection.status === 401) {
                 if ($rootScope.doRefresh === true) {
                     $rootScope.doRefresh = false;
@@ -255,20 +381,57 @@ angular.module("proton", [
                             return $http(rejection.config);
                         },
                         function() {
-                            $injector.get('authentication').logout();
-                            $injector.get('$state').go('login');
+                            $injector.get('authentication').logout(true, false);
                         }
                     );
                 } else {
-                    $injector.get('authentication').logout();
-                    $injector.get('$state').go('login');
+                    $injector.get('authentication').logout(true, false);
                 }
+            } else if (rejection.status === 403) {
+                var $http = $injector.get('$http');
+                var loginPasswordModal = $injector.get('loginPasswordModal');
+                var User = $injector.get('User');
+                var notify = $injector.get('notify');
+                var eventManager = $injector.get('eventManager');
+                var deferred = $q.defer();
+
+                // Open the open to enter login password because this request require lock scope
+                loginPasswordModal.activate({
+                    params: {
+                        submit: function(loginPassword) {
+                            // Send request to unlock the current session for administrator privileges
+                            User.unlock({Password: loginPassword}).$promise.then(function(data) {
+                                if (data.Code === 1000) {
+                                    // Close the modal
+                                    loginPasswordModal.deactivate();
+                                    // Resend request now
+                                    deferred.resolve($http(rejection.config));
+                                } else if (data.Error) {
+                                    notify({message: data.Error, classes: 'notification-danger'});
+                                    deferred.reject();
+                                }
+                            });
+                        },
+                        cancel: function() {
+                            loginPasswordModal.deactivate();
+                            deferred.reject();
+                        }
+                    }
+                });
+
+                return deferred.promise;
+            } else if (rejection.status === 504) { // Time-out
+                notification = $injector.get('notify')({
+                    message: 'Please retry.',
+                    classes: 'notification-danger'
+                });
             }
 
             return $q.reject(rejection);
         }
     };
 })
+
 .config(function($httpProvider, CONFIG) {
     //Http Intercpetor to check auth failures for xhr requests
     $httpProvider.interceptors.push('authHttpResponseInterceptor');
@@ -286,8 +449,11 @@ angular.module("proton", [
     $httpProvider.defaults.headers.get['Cache-Control'] = 'no-cache';
     $httpProvider.defaults.headers.get.Pragma = 'no-cache';
 })
-.run(function($rootScope, $location, $state, authentication, $log) {
+.run(function($rootScope, $location, $state, authentication, $log, $timeout, networkActivityTracker) {
     $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams) {
+
+        networkActivityTracker.clear();
+
         var isLogin = (toState.name === "login");
         var isUpgrade = (toState.name === "upgrade");
         var isSupport = (toState.name.includes("support"));
@@ -296,10 +462,6 @@ angular.module("proton", [
         var isUnlock = (toState.name === "login.unlock");
         var isOutside = (toState.name.includes("eo"));
         var isReset = (toState.name.includes("reset"));
-
-        $log.debug(toState.name);
-        $log.debug('isLoggedIn',$rootScope.isLoggedIn);
-        $log.debug('isLocked',$rootScope.isLocked);
 
         if (isUnlock && $rootScope.isLoggedIn) {
             $log.debug('appjs:(isUnlock && $rootScope.isLoggedIn)');
@@ -328,6 +490,9 @@ angular.module("proton", [
     });
 
     $rootScope.$on('$stateChangeSuccess', function(event, toState, toParams, fromState, fromParams) {
+        // Change page name
+        $rootScope.$broadcast('updatePageName');
+
         // Hide all the tooltip
         $('.tooltip').not(this).hide();
 
@@ -336,17 +501,13 @@ angular.module("proton", [
 
         $rootScope.toState = toState.name.replace(".", "-");
 
-        if($rootScope.scrollToBottom === true) {
-            setTimeout(function() {
-                $('#content').animate({
-                    scrollTop: $("#pageBottom").offset().top
-                }, 1);
-            }, 10);
+        $('#loading_pm, #pm_slow, #pm_slow2').remove();
 
-            $rootScope.scrollToBottom = false;
-        }
+        $timeout( function() {
+            $rootScope.mobileResponsive();
+            $rootScope.showSidebar = false;
+        }, 30);
 
-        $('#loading').remove();
     });
 })
 
@@ -372,8 +533,8 @@ angular.module("proton", [
 //
 
 .run(function($log) {
-    $log.info('Find a security bug? security@protonmail.com');
-    $log.info('We\'re hiring! https://protonmail.com/pages/join-us.html');
+    $log.info('Find a security bug? security@protonmail.ch');
+    $log.info('We\'re hiring! https://protonmail.com/careers');
 })
 
 //
@@ -381,8 +542,17 @@ angular.module("proton", [
 //
 
 .config(['pikadayConfigProvider', function(pikaday) {
+    var format;
+    var language = window.navigator.userLanguage || window.navigator.language;
+
+    if(language === 'en-US') {
+        format = 'MM/DD/YYYY';
+    } else {
+        format = 'DD/MM/YYYY';
+    }
+
     pikaday.setConfig({
-        format: "MM/DD/YYYY"
+        format: format
     });
 }])
 
@@ -414,19 +584,6 @@ angular.module("proton", [
         "notes":"http://protonmail.dev/blog/",
         "date":"17 Apr. 2015"
     };
-})
-
-/**
- * Detect if the user use safari private mode
- */
-.run(function(notify, tools) {
-    if(tools.hasSessionStorage() === false) {
-        notify({
-            message: 'You are in Private Mode or have Session Storage disabled.\nPlease deactivate Private Mode and then reload the page.',
-            classes: 'notification-danger',
-            duration: 0
-        });
-    }
 })
 
 //

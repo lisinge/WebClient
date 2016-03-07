@@ -1,38 +1,28 @@
 angular.module("proton.models.message", ["proton.constants"])
 
 .factory("Message", function(
+    $compile,
+    $http,
+    $log,
+    $q,
     $resource,
     $rootScope,
-    $compile,
+    $state,
+    $stateParams,
     $templateCache,
     $timeout,
-    $q,
-    $stateParams,
+    $filter,
     $translate,
-    $log,
     authentication,
-    url,
-    User,
-    pmcw,
-    CONSTANTS,
     CONFIG,
+    CONSTANTS,
     networkActivityTracker,
     notify,
-    tools
+    pmcw,
+    tools,
+    url,
+    User
 ) {
-    var filterLabels = function(input) {
-        var output = [];
-
-        if(angular.isArray(input)) {
-            output = _.filter(input, function(labelID) {
-                return !(labelID === parseInt(labelID).toString() && parseInt(labelID) <= 25);
-            });
-        }
-
-        return output;
-    };
-
-    var invertedMailboxIdentifiers = _.invert(CONSTANTS.MAILBOX_IDENTIFIERS);
     var Message = $resource(
         url.get() + '/messages/:id',
         authentication.params({
@@ -48,57 +38,26 @@ angular.module("proton.models.message", ["proton.constants"])
                 url: url.get() + '/messages/draft'
             },
             // GET
-            countUnread: {
-                method: 'get',
-                url: url.get() + '/messages/unread',
-                transformResponse: function(data) {
-                    var json = angular.fromJson(data);
-                    var counters = {};
-
-                    _.each(json.Labels, function(obj) { counters[obj.LabelID] = obj.Count; });
-                    _.each(json.Locations, function(obj) { counters[obj.Location] = obj.Count; });
-
-                    return counters;
-                }
-            },
             get: {
                 method: 'get',
                 url: url.get() + '/messages/:id',
                 transformResponse: function(data) {
                     var json = angular.fromJson(data);
 
-                    json.Message.LabelIDs = filterLabels(json.Message.LabelIDs);
-
                     return json.Message;
                 }
             },
-             totalCount: {
-                    method: 'get',
-                    url: url.get() + '/messages/total',
-            },
             query: {
                 method: 'get',
-                isArray: true,
-                url: url.get() + '/messages',
-                transformResponse: function(data) {
-                    var json = angular.fromJson(data);
-
-                    $rootScope.Total = json.Total;
-
-                    for( i=0; i<json.Messages.length; i++ ) {
-                        json.Messages[i].LabelIDs = filterLabels(json.Messages[i].LabelIDs);
-                    }
-
-                    return json.Messages;
-                }
+                url: url.get() + '/messages'
             },
-            latest: {
+            count: {
                 method: 'get',
-                url: url.get() + '/messages/latest/:time'
+                url: url.get() + '/messages/count'
             },
-            unreaded: {
+            totalCount: {
                 method: 'get',
-                url: url.get() + '/messages/unread'
+                url: url.get() + '/messages/total'
             },
             // PUT
             updateDraft: {
@@ -153,72 +112,12 @@ angular.module("proton.models.message", ["proton.constants"])
             emptyTrash: {
                 method: 'delete',
                 url: url.get() + '/messages/trash'
-            },
+            }
         }
     );
 
     _.extend(Message.prototype, {
         promises: [],
-        countdown: 0,
-        parameters: function(mailbox) {
-            var params = {};
-
-            params.Location = CONSTANTS.MAILBOX_IDENTIFIERS[mailbox];
-            params.Page = ($stateParams.page || 1) - 1;
-
-            if ($stateParams.filter) {
-                params.Unread = +($stateParams.filter === 'unread');
-            }
-
-            if ($stateParams.sort) {
-                var sort = $stateParams.sort;
-                var desc = _.string.startsWith(sort, "-");
-
-                if (desc) {
-                    sort = sort.slice(1);
-                }
-
-                params.Sort = _.string.capitalize(sort);
-                params.Desc = +desc;
-            }
-
-            if (mailbox === 'search') {
-                params.Location = $stateParams.location;
-                params.Keyword = $stateParams.words;
-                params.To = $stateParams.to;
-                params.From = $stateParams.from;
-                params.Subject = $stateParams.subject;
-                params.Begin = $stateParams.begin;
-                params.End = $stateParams.end;
-                params.Attachments = $stateParams.attachments;
-                params.Starred = $stateParams.starred;
-                params.Label = $stateParams.label;
-            } else if(mailbox === 'label') {
-                delete params.Location;
-                params.Label = $stateParams.label;
-            }
-
-            _.pick(params, _.identity);
-
-            return params;
-        },
-        moveTo: function(location) {
-            // If location is given as a name ('inbox', 'sent', etc), convert it to identifier (0, 1, 2)
-            if (_.has(CONSTANTS.MAILBOX_IDENTIFIERS, location)) {
-                this.Location = CONSTANTS.MAILBOX_IDENTIFIERS[location];
-            } else {
-                this.Location = location;
-            }
-
-            this.selected = false; // unselect the message
-
-            return this.$patch({
-                action: invertedMailboxIdentifiers[this.Location]
-            });
-        },
-        numberOfAttachments: function() {
-            return this.Attachments.length;
-        },
         sizeAttachments: function() {
             var size = 0;
 
@@ -245,12 +144,9 @@ angular.module("proton.models.message", ["proton.constants"])
 
             return texts[this.IsEncrypted];
         },
-        location: function() {
-            return invertedMailboxIdentifiers[this.Location];
-        },
 
         isDraft: function() {
-            return this.Location === CONSTANTS.MAILBOX_IDENTIFIERS.drafts;
+            return this.LabelIDs.indexOf(CONSTANTS.MAILBOX_IDENTIFIERS.drafts) !== -1;
         },
 
         toggleImages: function() {
@@ -263,14 +159,18 @@ angular.module("proton.models.message", ["proton.constants"])
             return body;
         },
 
+        /**
+         * Label/unlabel an array of messages
+         * @param {String} labelID
+         * @param {Integer} action - 0 for remove or 1 for add
+         * @param {Array} messageIDs
+         */
+        updateLabels: function(labelID, action, messageIDs) {
+            return $http.put(url.get() + '/messages/label', {LabelID: labelID, Action: action, MessageIDs: messageIDs});
+        },
+
         labels: function() {
-            var labels = [];
-
-            _.each(this.LabelIDs, function(id) {
-                labels.push(_.findWhere(authentication.user.Labels, {ID: id}));
-            });
-
-            return labels;
+            return $filter('labels')(this.LabelIDs);
         },
 
         setMsgBody: function() {
@@ -312,50 +212,43 @@ angular.module("proton.models.message", ["proton.constants"])
             });
         },
 
-        loading: function() {
-            return !_.isEmpty(this.promises);
+        allowSend: function() {
+            return this.uploading > 0 || this.allowOthers();
         },
 
-        track: function (promise) {
-            this.promises = _.union(this.promises, [promise]);
+        allowSave: function() {
+            return this.allowSend();
+        },
 
-            promise.catch(function(result) {
-                if(angular.isDefined(result)) {
-                    $log.error(result);
-                    if ( angular.isDefined( result.message ) ) {
-                        notify({message: result.message, classes: 'notification-danger'});
-                    }
-                    else if ( angular.isDefined( result.Error ) ) {
-                        notify({message: result.Error, classes: 'notification-danger'});
-                    }
-                    else if ( angular.isDefined( result.data ) && angular.isDefined( result.data.Error ) ) {
-                        notify({message: result.data.Error, classes: 'notification-danger'});
-                    }
-                    else if ( angular.isString( result ) ) {
-                        notify({message: result, classes: 'notification-danger'});
-                    }
-                }
-            });
+        allowDiscard: function() {
+            return this.allowSend();
+        },
 
-            promise.finally(function () {
-                this.promises = _.without(this.promises, promise);
-            }.bind(this));
-
-            return promise;
+        allowOthers: function() {
+            return (this.saving === true && this.autosaving === false) || this.sending || this.encrypting;
         },
 
         encryptBody: function(key) {
             return pmcw.encryptMessage(this.Body, key);
         },
 
-        decryptBody: function(body, time) {
+        /**
+         * Decrypt the body
+         * @return {Promise}
+         */
+        decryptBody: function() {
             var deferred = $q.defer();
+            var keys = authentication.getPrivateKeys(this.AddressID);
 
-            authentication.getPrivateKey().then(function(key) {
-                pmcw.decryptMessageRSA(body, key, time).then(function(result) {
-                    deferred.resolve(result);
-                });
-            });
+            this.decrypting = true;
+
+            pmcw.decryptMessageRSA(this.Body, keys, this.Time).then(function(result) {
+                this.decrypting = false;
+                deferred.resolve(result);
+            }.bind(this), function(error) {
+                this.decrypting = false;
+                deferred.reject(error);
+            }.bind(this));
 
             return deferred.promise;
         },
@@ -395,19 +288,19 @@ angular.module("proton.models.message", ["proton.constants"])
             var promises = [];
             var deferred = $q.defer();
 
+            var keys = authentication.getPrivateKeys(this.AddressID);
+
             _.each(this.Attachments, function(element) {
                 if(element.sessionKey === undefined) {
-                    promises.push(authentication.getPrivateKey().then(function(pk) {
-                        var keyPackets = pmcw.binaryStringToArray(pmcw.decode_base64(element.KeyPackets));
-                        return pmcw.decryptSessionKey(keyPackets, pk).then(function(key) {
-                            element.sessionKey = key;
-                            packets.push({
-                                ID: element.ID,
-                                Key: pmcw.encode_base64(pmcw.arrayToBinaryString(element.sessionKey.key)),
-                                Algo: element.sessionKey.algo
-                            });
+                    var keyPackets = pmcw.binaryStringToArray(pmcw.decode_base64(element.KeyPackets));
+                    return pmcw.decryptSessionKey(keyPackets, keys).then(function(key) {
+                        element.sessionKey = key;
+                        packets.push({
+                            ID: element.ID,
+                            Key: pmcw.encode_base64(pmcw.arrayToBinaryString(element.sessionKey.key)),
+                            Algo: element.sessionKey.algo
                         });
-                    }));
+                    });
                 }
                 else {
                     promises.push(packets.push({
@@ -448,34 +341,18 @@ angular.module("proton.models.message", ["proton.constants"])
             var body;
             var deferred = $q.defer();
 
-            if (this.isDraft() || (!_.isUndefined(this.IsEncrypted) && parseInt(this.IsEncrypted))) {
-                if (_.isUndefined(this.DecryptedBody) && !!!this.decrypting) {
-                    this.decrypting = true;
-
+            if (this.isDraft() || this.IsEncrypted > 0) {
+                if (angular.isUndefined(this.DecryptedBody)) {
                     try {
-                        authentication.getPrivateKey()
-                        .then(
-                            function(key) {
-                                pmcw.decryptMessageRSA(this.Body, key, this.Time)
-                                .then(
-                                    function(result) {
-                                        this.DecryptedBody = result;
-                                        this.failedDecryption = false;
-                                        deferred.resolve(result);
-                                    }.bind(this),
-                                    function(err) {
-                                        this.failedDecryption = true;
-                                        deferred.reject(err);
-                                    }.bind(this)
-                                );
-                            }.bind(this),
-                            function(err) {
-                                this.failedDecryption = true;
-                                deferred.reject(err);
-                            }.bind(this)
-                        );
-                    }
-                    catch (err) {
+                        this.decryptBody().then(function(result) {
+                            this.DecryptedBody = result;
+                            this.failedDecryption = false;
+                            deferred.resolve(result);
+                        }.bind(this), function(err) {
+                            this.failedDecryption = true;
+                            deferred.reject(err);
+                        }.bind(this));
+                    } catch (err) {
                         this.failedDecryption = true;
                         deferred.reject(err);
                     }
@@ -487,15 +364,13 @@ angular.module("proton.models.message", ["proton.constants"])
                 deferred.resolve(this.Body);
             }
 
-            this.decrypting = false;
             return deferred.promise;
         },
 
         clearImageBody: function(body) {
-            if (body===undefined) {
-                return body;
-            }
-            if (this.containsImage === false || body.match('<img') === null) {
+            if (angular.isUndefined(body)) {
+
+            } else if (this.containsImage === false || body.match('<img') === null) {
                 this.containsImage = false;
             } else {
                 this.containsImage = true;
@@ -512,22 +387,6 @@ angular.module("proton.models.message", ["proton.constants"])
             return body;
         }
     });
-
-    if(this.ExpirationTime) {
-        var interval = 1000; // 1 sec
-        var timer;
-        var tick = function() {
-            timer = $timeout(function() {
-                if(Message.countdown > 0) {
-                    Message.countdown -= 1000;
-
-                    if(Message.countdown > 0) {
-                        tick();
-                    }
-                }
-            }, interval);
-        };
-    }
 
     return Message;
 });

@@ -8,6 +8,7 @@ angular.module("proton.networkActivity", ["proton.errorReporter"])
          * User to display the loading state
          */
         loading: function () {
+            // $log.error(promises);
             return !_.isEmpty(promises);
         },
         /**
@@ -31,8 +32,6 @@ angular.module("proton.networkActivity", ["proton.errorReporter"])
                 if(angular.isObject(error)) { // Error Object
                     var message;
 
-                    $log.error(error);
-
                     if(angular.isDefined(error.message)) {
                         message = error.message;
                     } else if(angular.isDefined(error.Error)) {
@@ -50,6 +49,11 @@ angular.module("proton.networkActivity", ["proton.errorReporter"])
             });
 
             return promise;
+        },
+        clear: function() {
+            errorReporter.clear();
+            promises = [];
+            return promises;
         }
     };
 

@@ -12,7 +12,6 @@ angular.module("proton.controllers.Contacts", [
     $filter,
     tools,
     authentication,
-    contacts,
     Contact,
     confirmModal,
     contactModal,
@@ -23,15 +22,21 @@ angular.module("proton.controllers.Contacts", [
     notify
 ) {
     // Variables
-    $scope.params = { searchContactInput: '', currentPage: 1 };
+    var lastChecked = null;
+
     $rootScope.pageName = 'Contacts';
-    authentication.user.Contacts = contacts.data.Contacts;
+    $scope.currentPage = 1;
+    $scope.params = { searchContactInput: ''};
     $scope.editing = false;
     $scope.numPerPage = 40;
     $scope.sortBy = 'Name';
 
     // Listeners
     $scope.$on('updateContacts', $scope.updateContacts);
+    $scope.$on('searchContacts', function(event, keyword) {
+        $scope.params.searchContactInput = keyword;
+        $scope.refreshContacts(true);
+    });
 
     // Methods
     $scope.initialization = function() {
@@ -44,7 +49,7 @@ angular.module("proton.controllers.Contacts", [
         function pagination(contacts) {
             var begin, end;
 
-            begin = ($scope.params.currentPage - 1) * $scope.numPerPage;
+            begin = ($scope.currentPage - 1) * $scope.numPerPage;
             end = begin + $scope.numPerPage;
 
             return contacts.slice(begin, end);
@@ -66,7 +71,7 @@ angular.module("proton.controllers.Contacts", [
         }
 
         if(searching === true) {
-            $scope.params.currentPage = 1;
+            $scope.currentPage = 1;
         }
 
         return pagination(orderBy(search(authentication.user.Contacts)));
@@ -76,11 +81,20 @@ angular.module("proton.controllers.Contacts", [
         $scope.contacts = $scope.contactsFiltered();
     };
 
+    $scope.selectPage = function(page) {
+        $scope.currentPage = page;
+        $scope.refreshContacts();
+    };
+
     $scope.refreshContacts = function(searching) {
         $scope.contacts = $scope.contactsFiltered(searching);
     };
 
     $scope.setSortBy = function(sort) {
+        if($scope.sortBy.charAt(0) !== '-') {
+            sort = '-' + sort;
+        }
+
         $scope.sortBy = sort;
         $scope.refreshContacts();
     };
@@ -114,7 +128,6 @@ angular.module("proton.controllers.Contacts", [
                     networkActivityTracker.track(
                         Contact.clear().then(function(response) {
                             notify({message: $translate.instant('CONTACTS_DELETED'), classes: 'notification-success'});
-                            Contact.index.updateWith($scope.contacts);
                         }, function(response) {
                             $log.error(response);
                         })
@@ -167,7 +180,6 @@ angular.module("proton.controllers.Contacts", [
                             });
                             notify({message: $translate.instant('CONTACTS_DELETED'), classes: 'notification-success'});
                             confirmModal.deactivate();
-                            Contact.index.updateWith($scope.contacts);
                         }, function(error) {
                             notify({message: error, classes: 'notification-danger'});
                             $log.error(error);
@@ -203,7 +215,6 @@ angular.module("proton.controllers.Contacts", [
                             authentication.user.Contacts.push(response.data.Responses[0].Response.Contact);
                             $scope.contacts = $scope.contactsFiltered();
                             notify({message: $translate.instant('CONTACT_ADDED'), classes: 'notification-success'});
-                            Contact.index.updateWith(authentication.user.Contacts);
                             contactModal.deactivate();
                         } else {
                             notify({message: response.data.Responses[0].Error, classes: 'notification-danger'});
@@ -237,7 +248,6 @@ angular.module("proton.controllers.Contacts", [
                         if(response.data.Code === 1000) {
                             contactModal.deactivate();
                             notify({message: $translate.instant('CONTACT_EDITED'), classes: 'notification-success'});
-                            Contact.index.updateWith(authentication.user.Contacts);
                         } else {
                             notify({message: response.data.Error, classes: 'notification-danger'});
                         }
@@ -252,15 +262,19 @@ angular.module("proton.controllers.Contacts", [
     };
 
     $scope.onSelectContact = function(event, contact) {
-        var contactsSelected = $scope.contactsSelected();
+        if(!lastChecked) {
+            lastChecked = contact;
+        } else {
+            if (event.shiftKey) {
+                var start = _.indexOf($scope.contacts, contact);
+                var end = _.indexOf($scope.contacts, lastChecked);
 
-        if (event.shiftKey) {
-            var start = authentication.user.Contacts.indexOf(_.first(contactsSelected));
-            var end = authentication.user.Contacts.indexOf(_.last(contactsSelected));
-
-            for (var i = start; i < end; i++) {
-                authentication.user.Contacts[i].selected = true;
+                _.each($scope.contacts.slice(Math.min(start, end), Math.max(start, end) + 1), function(contact) {
+                    contact.selected = lastChecked.selected;
+                });
             }
+
+            lastChecked = contact;
         }
     };
 
@@ -313,7 +327,7 @@ angular.module("proton.controllers.Contacts", [
         dropzoneModal.activate({
             params: {
                 title: $translate.instant('UPLOAD_CONTACTS'),
-                message: 'Allowed formats (UTF-8 encoding): <code>.vcf, .csv</code><a class="pull-right" href="/blog/exporting-contacts" target="_blank">Need help?</a>',
+                message: 'Allowed formats (UTF-8 encoding): <code>.vcf, .csv</code><a class="pull-right" href="https://protonmail.com/support/knowledge-base/adding-contacts/" target="_blank">Need help?</a>',
                 import: function(files) {
                     var contactArray = [];
                     var extension = '';
@@ -412,7 +426,6 @@ angular.module("proton.controllers.Contacts", [
                                 });
 
                                 $scope.contacts = $scope.contactsFiltered();
-                                Contact.index.updateWith(authentication.user.Contacts);
                             }, function(error) {
                                 $log.error(error);
                             })
@@ -428,6 +441,9 @@ angular.module("proton.controllers.Contacts", [
         });
     };
 
+    /**
+     * Open modal to alert the user that he cannot download
+     */
     $scope.openSafariWarning = function() {
         alertModal.activate({
             params: {
