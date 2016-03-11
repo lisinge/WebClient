@@ -82,8 +82,8 @@ body {
                     .fa-repeat {
                         float: right;
                         display: block;
-                        line-height: ($sidebarRowHeight - 4 - $sidebarReduction);
-                        height: ($sidebarRowHeight - 4 - $sidebarReduction);
+                        line-height: 100%;
+                        height: ($sidebarRowHeight - 2 - $sidebarReduction);
                         margin-right: 15px;
                         position: absolute;
                         right: 0;
